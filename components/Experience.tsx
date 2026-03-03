@@ -12,7 +12,6 @@ const experiences = [
         company: "AVSA Studio",
         location: "New York City",
         period: "Nov 2020 — Present",
-        description: "Built and led a multidisciplinary creative studio offering web development, branding, marketing, and photography services.",
         bullets: [
             "Helped entrepreneurs and startups create and launch their brands from the ground up.",
             "Designed websites, marketing materials, and visual content ensuring consistency.",
@@ -25,7 +24,6 @@ const experiences = [
         company: "Altronix",
         location: "Brooklyn, NY",
         period: "FEB 2020 — NOV 2022",
-        description: "Designed and developed responsive web applications using HTML, CSS, JavaScript, and React.",
         bullets: [
             "Integrated APIs and backend services to improve application functionality.",
             "Built reusable UI components and optimized front-end workflows.",
@@ -57,10 +55,6 @@ export const Experience: React.FC = () => {
                 <div className="text-lg text-zinc-300 font-medium mb-4">
                     {exp.company}, {exp.location}
                 </div>
-
-                <p className="text-zinc-400 mb-4 max-w-3xl">
-                    {exp.description}
-                </p>
 
                 <ul className="space-y-2">
                     {exp.bullets.map((bullet, idx) => (

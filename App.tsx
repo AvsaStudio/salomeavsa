@@ -8,6 +8,7 @@ import { Hero } from './components/Hero';
 import { Terminal } from './components/Terminal';
 import { Experience } from './components/Experience';
 import { Projects } from './components/Projects';
+import { CoffeeChatbot } from './components/CoffeeChatbot';
 import { Photography } from './components/Photography';
 import { CodesmithChallenges } from './components/CodesmithChallenges';
 import { UXDesign } from './components/UXDesign';
@@ -67,6 +68,7 @@ const App: React.FC = () => {
           
           <Terminal />
           
+          <CoffeeChatbot />
           <Photography />
           
           <CodesmithChallenges />
