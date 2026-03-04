@@ -1,21 +1,17 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { sendCoffeeChat, ChatMessage } from '../services/gemini';
 
-type Step = { from: 'bot' | 'user'; text: string; chips?: string[] };
+type Message = { from: 'bot' | 'user'; text: string; chips?: string[] };
 
-const STEPS: Step[] = [
-  { from: 'bot',  text: 'Hi! Welcome to Coffee Chatbot ☕', chips: ['☕ Order Coffee', '💬 Ask a Question', '👋 Say Hello'] },
-  { from: 'user', text: '☕ Order Coffee' },
-  { from: 'bot',  text: "What can I get started for you?", chips: ['🧊 Iced Latte', '☕ Espresso', '🍵 Matcha'] },
-  { from: 'user', text: "I'd like an iced latte, please." },
-  { from: 'bot',  text: 'Great choice! Add an extra shot of espresso?', chips: ['⭐ Yes!', '😊 No, thanks!'] },
-  { from: 'user', text: 'Sure, go ahead.' },
-  { from: 'bot',  text: "Got it! Iced latte + extra shot. Total: $5.75. Please choose a pickup time:", chips: ['• Now', '• 10 mins', '• 20 mins'] },
-];
+const INITIAL_MESSAGE: Message = {
+  from: 'bot',
+  text: 'Hi! Welcome to Brewed Beans Café ☕ What can I get started for you today?',
+  chips: ['☕ Order Coffee', '💬 Brewing Tips', '👋 Say Hello'],
+};
 
 /* ── B&W SVG mascots ── */
 const BrewBot = () => (
@@ -90,19 +86,74 @@ const Gauge = () => (
   </svg>
 );
 
+/* ── Send icon ── */
+const SendIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="22" y1="2" x2="11" y2="13"/>
+    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+  </svg>
+);
+
 export const CoffeeChatbot: React.FC = () => {
-  const [visible, setVisible] = useState(0);
+  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
+  const [history, setHistory] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const chatAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (visible >= STEPS.length) return;
-    const delay = visible === 0 ? 600 : STEPS[visible - 1].from === 'user' ? 700 : 1300;
-    const t = setTimeout(() => setVisible(v => v + 1), delay);
-    return () => clearTimeout(t);
-  }, [visible]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
 
-  const shownSteps = STEPS.slice(0, visible);
-  const lastBot = [...shownSteps].reverse().find(s => s.from === 'bot');
-  const isTyping = visible < STEPS.length && (visible === 0 || STEPS[visible - 1].from === 'user');
+  const sendMessage = useCallback(async (text: string) => {
+    if (!text.trim() || isLoading) return;
+
+    const userMsg: Message = { from: 'user', text };
+    setMessages(prev => [...prev, userMsg]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      const botText = await sendCoffeeChat(text, history);
+
+      // Suggest pickup chips if the bot is confirming an order
+      const lowerText = botText.toLowerCase();
+      const chips =
+        lowerText.includes('pickup') || lowerText.includes('pick up') || lowerText.includes('when')
+          ? ['Now', '10 mins', '20 mins']
+          : lowerText.includes('size') || lowerText.includes('small') || lowerText.includes('large')
+          ? ['Small', 'Medium', 'Large']
+          : undefined;
+
+      const botMsg: Message = { from: 'bot', text: botText, chips };
+      setMessages(prev => [...prev, botMsg]);
+
+      // Update history for multi-turn context
+      setHistory(prev => [
+        ...prev,
+        { role: 'user', parts: [{ text }] },
+        { role: 'model', parts: [{ text: botText }] },
+      ]);
+    } catch {
+      setMessages(prev => [
+        ...prev,
+        { from: 'bot', text: 'Oops! Our espresso machine had a hiccup. Try again in a moment ☕' },
+      ]);
+    } finally {
+      setIsLoading(false);
+      inputRef.current?.focus();
+    }
+  }, [history, isLoading]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage(input);
+  };
+
+  // Find index of last bot message (for chips display)
+  const lastBotIdx = messages.reduce((acc, m, i) => (m.from === 'bot' ? i : acc), -1);
 
   return (
     <section className="py-14 px-4 max-w-7xl mx-auto">
@@ -151,7 +202,9 @@ export const CoffeeChatbot: React.FC = () => {
                       <div className="w-2 h-2 rounded-full bg-amber-400 opacity-40" />
                       <div className="w-2 h-2 rounded-full bg-zinc-600" />
                     </div>
-                    <div className="text-[8px] text-zinc-500 font-mono mt-0.5 tracking-wider">OFF</div>
+                    <div className="text-[8px] text-zinc-500 font-mono mt-0.5 tracking-wider">
+                      {isLoading ? 'BREWING...' : 'READY'}
+                    </div>
                   </div>
                 </div>
 
@@ -164,21 +217,20 @@ export const CoffeeChatbot: React.FC = () => {
 
             {/* ── Screen / Chat area ── */}
             <div className="mx-3 my-2 rounded-lg overflow-hidden flex flex-col"
-                 style={{ background: 'white', border: '2px solid #888', height: 400,
+                 style={{ background: 'white', border: '2px solid #888', height: 420,
                           boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.15)' }}>
 
               {/* Welcome banner */}
               <div className="px-3 pt-2 pb-1 border-b border-zinc-200"
                    style={{ background: '#fafafa' }}>
                 <div className="text-center text-[11px] font-bold text-zinc-800 tracking-wide">
-                  Hi! Welcome to our Coffee Chatbot ☕
+                  Brewed Beans Café — AI Barista ☕
                 </div>
               </div>
 
               {/* Mascots */}
               <div className="relative flex items-end justify-center gap-4 py-2 border-b border-zinc-100 overflow-hidden"
                    style={{ background: '#f8f7f5' }}>
-                {/* Decorations — sparkles & hearts scattered */}
                 <span className="absolute text-[10px] select-none" style={{ top: 4,  left: 14,  opacity: 0.55 }}>✦</span>
                 <span className="absolute text-[8px]  select-none" style={{ top: 10, left: 36,  opacity: 0.4  }}>♥</span>
                 <span className="absolute text-[10px] select-none" style={{ top: 2,  left: 72,  opacity: 0.5  }}>✧</span>
@@ -199,31 +251,45 @@ export const CoffeeChatbot: React.FC = () => {
                 <BeanBuddy />
               </div>
 
-              {/* Chat messages */}
-              <div className="flex-1 overflow-hidden flex flex-col justify-end px-3 py-2 gap-1.5">
-                {shownSteps.map((step, i) => (
-                  <div key={i} className={`flex flex-col gap-1 ${step.from === 'user' ? 'items-end' : 'items-start'} machine-in`}>
-                    <div className={`px-2.5 py-1.5 text-[10.5px] leading-relaxed max-w-[84%] ${
-                      step.from === 'bot'
-                        ? 'bg-white text-zinc-800 border border-zinc-300 shadow-sm'
-                        : 'bg-zinc-800 text-white'
-                    }`}
-                    style={{ borderRadius: step.from === 'bot' ? '12px 12px 12px 2px' : '12px 12px 2px 12px' }}>
-                      {step.text}
+              {/* Chat messages — scrollable */}
+              <div
+                ref={chatAreaRef}
+                className="flex-1 overflow-y-auto flex flex-col px-3 py-2 gap-1.5"
+                style={{ scrollbarWidth: 'thin', scrollbarColor: '#d1d5db transparent' }}
+              >
+                {messages.map((msg, i) => (
+                  <div key={i} className={`flex flex-col gap-1 ${msg.from === 'user' ? 'items-end' : 'items-start'} machine-in`}>
+                    <div
+                      className={`px-2.5 py-1.5 text-[10.5px] leading-relaxed max-w-[84%] ${
+                        msg.from === 'bot'
+                          ? 'bg-white text-zinc-800 border border-zinc-300 shadow-sm'
+                          : 'bg-zinc-800 text-white'
+                      }`}
+                      style={{ borderRadius: msg.from === 'bot' ? '12px 12px 12px 2px' : '12px 12px 2px 12px' }}
+                    >
+                      {msg.text}
                     </div>
-                    {step.from === 'bot' && step === lastBot && step.chips && (
+                    {/* Show chips only on the last bot message */}
+                    {msg.from === 'bot' && i === lastBotIdx && msg.chips && !isLoading && (
                       <div className="flex flex-wrap gap-1 mt-0.5">
-                        {step.chips.map(chip => (
-                          <div key={chip} className="px-2 py-0.5 text-[9.5px] text-zinc-600 bg-white border border-zinc-300 cursor-default hover:bg-zinc-50 transition-colors"
-                               style={{ borderRadius: 20 }}>
+                        {msg.chips.map(chip => (
+                          <button
+                            key={chip}
+                            onClick={() => sendMessage(chip)}
+                            disabled={isLoading}
+                            className="px-2 py-0.5 text-[9.5px] text-zinc-600 bg-white border border-zinc-300 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors disabled:opacity-50 cursor-pointer"
+                            style={{ borderRadius: 20 }}
+                          >
                             {chip}
-                          </div>
+                          </button>
                         ))}
                       </div>
                     )}
                   </div>
                 ))}
-                {isTyping && (
+
+                {/* Typing indicator */}
+                {isLoading && (
                   <div className="flex items-center gap-1 machine-in">
                     <div className="bg-white border border-zinc-300 px-3 py-2 shadow-sm flex gap-1"
                          style={{ borderRadius: '12px 12px 12px 2px' }}>
@@ -233,21 +299,33 @@ export const CoffeeChatbot: React.FC = () => {
                     </div>
                   </div>
                 )}
+                <div ref={messagesEndRef} />
               </div>
 
-              {/* Input row */}
-              <div className="flex items-center gap-2 px-2 py-1.5 border-t border-zinc-200" style={{ background: '#f5f4f2' }}>
-                <div className="text-base">🙂</div>
-                <div className="flex-1 text-[10px] text-zinc-400 font-mono">Brewed Beans Café...</div>
-                {/* Coffee cup illustration */}
-                <svg width="28" height="24" viewBox="0 0 28 24" fill="none">
-                  <path d="M4 6 L6 20 Q6 21 7 21 L19 21 Q20 21 20 20 L22 6Z" fill="white" stroke="#888" strokeWidth="1.2"/>
-                  <path d="M20 10 Q24 10 24 14 Q24 18 20 18" stroke="#888" strokeWidth="1.2" strokeLinecap="round" fill="none"/>
-                  <ellipse cx="13" cy="21.5" rx="10" ry="1.8" fill="white" stroke="#888" strokeWidth="1"/>
-                  <path d="M9 4 Q8.5 2.5 9 1 Q9.5 2.5 9 4" stroke="#888" strokeWidth="1" strokeLinecap="round" fill="none"/>
-                  <path d="M13 3 Q12.5 1.5 13 0 Q13.5 1.5 13 3" stroke="#888" strokeWidth="1" strokeLinecap="round" fill="none"/>
-                </svg>
-              </div>
+              {/* ── Real input row ── */}
+              <form onSubmit={handleSubmit}
+                    className="flex items-center gap-1.5 px-2 py-1.5 border-t border-zinc-200"
+                    style={{ background: '#f5f4f2' }}>
+                <div className="text-base select-none">🙂</div>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  placeholder="Message BrewBot..."
+                  disabled={isLoading}
+                  className="flex-1 bg-transparent text-[10px] text-zinc-700 placeholder-zinc-400 font-mono outline-none disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !input.trim()}
+                  className="flex items-center justify-center w-6 h-6 rounded-full text-white transition-colors disabled:opacity-40"
+                  style={{ background: input.trim() && !isLoading ? '#92400e' : '#a8a29e' }}
+                  aria-label="Send"
+                >
+                  <SendIcon />
+                </button>
+              </form>
             </div>
 
             {/* ── Bottom control buttons ── */}
@@ -293,7 +371,6 @@ export const CoffeeChatbot: React.FC = () => {
             {/* ── Drip tray ── */}
             <div className="mx-3 mb-3 rounded-b-lg overflow-hidden"
                  style={{ background: '#bbb', border: '1.5px solid #777', borderTop: 'none' }}>
-              {/* Tray grid */}
               <div className="h-6 flex items-center justify-center relative overflow-hidden">
                 {Array.from({ length: 18 }).map((_, i) => (
                   <div key={`tray-${i}`} className="absolute top-0 bottom-0 w-px" style={{ left: `${(i+1)*5.5}%`, background: '#999' }} />
@@ -320,19 +397,21 @@ export const CoffeeChatbot: React.FC = () => {
             <div className="text-6xl select-none" style={{ filter: 'drop-shadow(0 4px 16px rgba(180,120,60,0.3))' }}>☕</div>
             <div className="flex flex-col gap-1 items-center">
               <div className="flex gap-2 items-center">
-                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-amber-500/80 text-xs font-mono uppercase tracking-widest">Brewing a response...</span>
+                <div className={`w-2 h-2 rounded-full ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-green-500'}`} />
+                <span className={`text-xs font-mono uppercase tracking-widest ${isLoading ? 'text-amber-500/80' : 'text-green-500/80'}`}>
+                  {isLoading ? 'Brewing a response...' : 'BrewBot is ready'}
+                </span>
               </div>
               <div className="text-zinc-600 text-xs font-mono">python coffeebot.py --mood tired</div>
             </div>
           </div>
 
           <p className="text-zinc-400 text-sm leading-relaxed">
-            A conversational Python chatbot with a coffee shop personality. Uses rule-based NLP to recommend drinks, share brewing tips, and keep you caffeinated through late-night coding sessions.
+            A conversational Python chatbot with a coffee shop personality. Uses rule-based NLP to recommend drinks, share brewing tips, and keep you caffeinated through late-night coding sessions. Now with a live AI demo — try chatting with BrewBot!
           </p>
 
           <div className="flex flex-wrap gap-2 justify-center">
-            {['Python', 'NLP', 'CLI', 'NLTK', 'Regex'].map(tag => (
+            {['Python', 'NLP', 'CLI', 'NLTK', 'Regex', 'Gemini AI'].map(tag => (
               <span key={tag} className="px-2.5 py-1 bg-zinc-900 border border-zinc-800 text-zinc-400 text-xs font-mono rounded-full">{tag}</span>
             ))}
           </div>

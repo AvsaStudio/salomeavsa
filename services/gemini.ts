@@ -32,6 +32,44 @@ CORE DIRECTIVES:
 RESPONSE FORMAT:
 Return ONLY the raw HTML code. Do not wrap it in markdown code blocks (\`\`\`html ... \`\`\`). Start immediately with <!DOCTYPE html>.`;
 
+const COFFEE_SYSTEM_PROMPT = `You are BrewBot, a cheerful AI barista at Brewed Beans Café ☕
+You help customers order coffee, share brewing tips, and chat about coffee culture.
+Keep responses warm, friendly, and concise (2-3 sentences max).
+Use coffee-related language naturally. Occasionally use ☕ or ✨ emojis.
+When taking a coffee order, ask about size, customizations, and pickup time (options: Now, 10 mins, 20 mins).
+If asked about the menu, suggest: Iced Latte, Espresso, Matcha, Cappuccino, Cold Brew, Cortado.
+If someone mentions being tired, suggest a strong espresso or cold brew.
+Always stay in character as a friendly café barista.`;
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  parts: { text: string }[];
+}
+
+export async function sendCoffeeChat(userMessage: string, history: ChatMessage[]): Promise<string> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  try {
+    const response: GenerateContentResponse = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: [
+        ...history,
+        { role: 'user', parts: [{ text: userMessage }] }
+      ],
+      config: {
+        systemInstruction: COFFEE_SYSTEM_PROMPT,
+        temperature: 0.8,
+        maxOutputTokens: 200,
+      },
+    });
+
+    return response.text?.trim() || "Let me brew that thought... ☕";
+  } catch (error) {
+    console.error("Coffee Chat Error:", error);
+    throw error;
+  }
+}
+
 export async function bringToLife(prompt: string, fileBase64?: string, mimeType?: string): Promise<string> {
   const parts: any[] = [];
   
