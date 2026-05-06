@@ -1,71 +1,60 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import React from 'react';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { employmentHistory } from "../data/employment";
 
-const experiences = [
-    {
-        id: 1,
-        role: "Freelancer / Founder",
-        company: "AVSA Studio",
-        location: "New York City",
-        period: "Nov 2020 — Present",
-        bullets: [
-            "Helped entrepreneurs and startups create and launch their brands from the ground up.",
-            "Designed websites, marketing materials, and visual content ensuring consistency.",
-            "Directed photo shoots and crafted tailored brand experiences."
-        ]
-    },
-    {
-        id: 2,
-        role: "Front-End Engineer",
-        company: "Altronix",
-        location: "Brooklyn, NY",
-        period: "FEB 2020 — NOV 2022",
-        bullets: [
-            "Integrated APIs and backend services to improve application functionality.",
-            "Built reusable UI components and optimized front-end workflows.",
-            "Conducted debugging, testing, and code reviews."
-        ]
-    },
-
-];
+const categoryStyles = {
+  Engineering: "bg-blue-500/10 text-blue-400",
+  "UX/UI Design": "bg-violet-500/10 text-violet-400",
+} as const;
 
 export const Experience: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <section id="experience" className="py-20 px-4 max-w-5xl mx-auto">
-      <h2 className="text-4xl font-bold text-white mb-12 border-b border-zinc-800 pb-4 font-gemola tracking-wide">Employment History</h2>
-      
-      <div className="space-y-12 relative">
-        {/* Vertical Line */}
-        <div className="absolute left-0 top-2 bottom-0 w-px bg-zinc-800 md:left-8"></div>
+      <div className="flex items-baseline justify-between mb-12 border-b border-zinc-800 pb-4">
+        <h2 className="text-4xl font-bold text-white font-gemola tracking-wide">Experience</h2>
+        <button
+          onClick={() => navigate('/experience')}
+          className="text-xs font-mono text-zinc-400 hover:text-blue-400 transition-colors uppercase tracking-widest"
+        >
+          Full History →
+        </button>
+      </div>
 
-        {experiences.map((exp) => (
-            <div key={exp.id} className="relative pl-8 md:pl-16">
-                {/* Dot */}
-                <div className="absolute left-[-4px] md:left-[28px] top-2 w-2.5 h-2.5 bg-blue-500 rounded-full ring-4 ring-zinc-950"></div>
-                
-                <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between mb-2">
-                    <h3 className="text-xl font-bold text-white">{exp.role}</h3>
-                    <span className="text-sm font-mono text-zinc-500">{exp.period}</span>
-                </div>
-                
-                <div className="text-lg text-zinc-300 font-medium mb-4">
-                    {exp.company}, {exp.location}
-                </div>
-
-                <ul className="space-y-2">
-                    {exp.bullets.map((bullet, idx) => (
-                        <li key={idx} className="text-sm text-zinc-500 flex items-start">
-                            <span className="mr-2 mt-1.5 w-1 h-1 bg-zinc-600 rounded-full shrink-0"></span>
-                            {bullet}
-                        </li>
-                    ))}
-                </ul>
+      <div className="space-y-0 divide-y divide-zinc-800/60">
+        {employmentHistory.map((job) => (
+          <div key={job.id} className="py-6 flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="sm:w-40 shrink-0">
+              <span className="text-xs font-mono text-zinc-500">{job.period}</span>
             </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-base font-bold text-white">{job.role}</h3>
+                <span
+                  className={`rounded px-2 py-0.5 text-xs font-mono ${categoryStyles[job.category]}`}
+                >
+                  {job.category}
+                </span>
+              </div>
+              <div className="text-sm text-zinc-400 font-medium mb-2">{job.company}</div>
+              <p className="text-sm text-zinc-500 leading-relaxed">{job.preview}</p>
+            </div>
+          </div>
         ))}
+      </div>
+
+      <div className="mt-10 pt-8 border-t border-zinc-800">
+        <button
+          onClick={() => navigate('/experience')}
+          className="w-full sm:w-auto px-6 py-3 border border-zinc-700 text-zinc-300 rounded-full text-sm font-medium hover:border-zinc-500 hover:text-white transition-colors"
+        >
+          View Full Employment History →
+        </button>
       </div>
     </section>
   );

@@ -255,13 +255,13 @@ export const Terminal: React.FC = () => {
   };
 
   return (
-    <section id="python-interactive" className="py-20 px-4 max-w-6xl mx-auto">
+    <section id="python-interactive" className="scroll-mt-28 py-20 px-4 max-w-6xl mx-auto">
         <div className="mb-10">
             <h2 className="text-4xl font-bold text-white mb-2 flex items-center gap-3 font-gemola tracking-wide">
                 <CommandLineIcon className="w-8 h-8 text-blue-500" />
                 Interactive Python Projects
             </h2>
-            <p className="text-zinc-400">
+            <p className="max-w-2xl text-zinc-300 leading-7">
                 Explore my Python capabilities directly in the browser. Select a script to run it.
             </p>
         </div>
@@ -269,7 +269,7 @@ export const Terminal: React.FC = () => {
         <div className="bg-[#1e1e1e] rounded-lg overflow-hidden shadow-2xl border border-zinc-800 flex flex-col md:flex-row min-h-[500px]">
             {/* Sidebar */}
             <div className="w-full md:w-64 bg-[#252526] border-r border-zinc-800 flex flex-col">
-                <div className="p-4 text-xs font-mono uppercase text-zinc-500 tracking-wider">Explorer</div>
+                <div className="p-4 text-xs font-mono uppercase text-zinc-400 tracking-wider">Explorer</div>
                 <div className="flex-1 overflow-y-auto">
                     <button onClick={() => setActiveApp('shipping')} className={`w-full flex items-center px-4 py-2 text-sm font-mono border-l-2 transition-colors ${activeApp === 'shipping' ? 'border-blue-500 bg-[#37373d] text-white' : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-[#2a2d2e]'}`}>
                         <span className="mr-2 text-yellow-400">py</span> sals_shipping.py

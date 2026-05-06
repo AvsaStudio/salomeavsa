@@ -512,7 +512,7 @@ censor("What the darn heck?", ["darn","heck"]);
 
 export const CodesmithChallenges: React.FC = () => {
   return (
-    <section id="js-challenges" className="py-20 px-4 max-w-6xl mx-auto">
+    <section id="js-challenges" className="scroll-mt-28 py-20 px-4 max-w-6xl mx-auto">
       <div className="mb-10">
         <p className="text-xs font-mono text-zinc-500 uppercase tracking-widest mb-2">Interactive Playground</p>
         <h2 className="text-4xl font-bold text-white font-gemola tracking-wide">JavaScript Challenges</h2>

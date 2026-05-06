@@ -7,13 +7,67 @@ import { sendCoffeeChat, ChatMessage } from "../services/gemini";
 
 type Message = { from: "bot" | "user"; text: string; chips?: string[] };
 
-const INITIAL_MESSAGE: Message = {
-  from: "bot",
-  text: "Hi! Welcome to Brewed Beans Café ☕ What can I get started for you today?",
-  chips: ["☕ Order Coffee", "💬 Brewing Tips", "👋 Say Hello"],
+interface HeartParticle {
+  id: number;
+  x: number;
+  y: number;
+  emoji: string;
+  dx: number;
+}
+interface OrderItem {
+  name: string;
+  size: string;
+  price: number;
+}
+
+const MENU = [
+  { name: "Espresso", emoji: "☕", base: 3.5, desc: "Rich & bold" },
+  { name: "Americano", emoji: "☕", base: 4.0, desc: "Smooth & clean" },
+  { name: "Cappuccino", emoji: "☕", base: 4.5, desc: "Frothy & classic" },
+  { name: "Latte", emoji: "☕", base: 5.0, desc: "Creamy & smooth" },
+  { name: "Flat White", emoji: "☕", base: 5.0, desc: "Velvety & strong" },
+  { name: "Cortado", emoji: "☕", base: 4.5, desc: "Bold & balanced" },
+  { name: "Mocha", emoji: "🍫", base: 5.5, desc: "Chocolatey delight" },
+  { name: "Cold Brew", emoji: "🧊", base: 5.5, desc: "Smooth & cold" },
+  { name: "Iced Latte", emoji: "🧊", base: 5.5, desc: "Cool & creamy" },
+  { name: "Matcha Latte", emoji: "🌿", base: 5.5, desc: "Earthy & calm" },
+];
+
+const SIZE_MOD: Record<string, number> = {
+  Small: -0.5,
+  Medium: 0,
+  Large: 0.75,
 };
 
-/* ── B&W SVG mascots ── */
+const EMOJI_SET = [
+  "😊",
+  "😄",
+  "🥳",
+  "😎",
+  "☕",
+  "🤩",
+  "😂",
+  "💙",
+  "✨",
+  "🫶",
+  "🔥",
+  "😴",
+];
+
+const RESTART_GREETINGS = [
+  "Hey! How are your coffee levels today? I just fired up the espresso machine ☕",
+  "Good news — the espresso machine is warmed up and ready! What are we brewing today? ☕",
+  "Welcome back! Coffee emergency? I've got you. What can I make for you? ✨",
+  "Hi there! ☕ The beans are fresh and I'm ready to make your perfect cup — what'll it be?",
+];
+
+const makeInitial = (): Message => ({
+  from: "bot",
+  text: "Hi! Welcome to Brewed Beans Café ☕ What can I get started for you today?",
+  chips: ["☕ See Menu", "💬 Brewing Tips", "I need a pick-me-up"],
+});
+
+/* ── SVGs ── */
 const BrewBot = () => (
   <svg
     width="56"
@@ -66,15 +120,6 @@ const BrewBot = () => (
       stroke="#222"
       strokeWidth="1.5"
     />
-    <ellipse
-      cx="28"
-      cy="50"
-      rx="19"
-      ry="3.5"
-      fill="none"
-      stroke="#222"
-      strokeWidth="1.5"
-    />
     <circle cx="22" cy="30" r="2.2" fill="#222" />
     <circle cx="34" cy="30" r="2.2" fill="#222" />
     <circle cx="22.9" cy="29.1" r="0.8" fill="white" />
@@ -86,8 +131,6 @@ const BrewBot = () => (
       strokeLinecap="round"
       fill="none"
     />
-    <ellipse cx="19" cy="34" rx="2.8" ry="1.6" fill="#222" opacity="0.13" />
-    <ellipse cx="37" cy="34" rx="2.8" ry="1.6" fill="#222" opacity="0.13" />
     <path
       d="M23 22 Q24.5 19 28 22 Q31.5 19 33 22 Q31.5 25 28 27 Q24.5 25 23 22Z"
       fill="#e0e0e0"
@@ -132,8 +175,6 @@ const BeanBuddy = () => (
       strokeLinecap="round"
       fill="none"
     />
-    <ellipse cx="14" cy="31" rx="2.5" ry="1.5" fill="#222" opacity="0.11" />
-    <ellipse cx="32" cy="31" rx="2.5" ry="1.5" fill="#222" opacity="0.11" />
     <path
       d="M38 22 Q44 17 45 13"
       stroke="#222"
@@ -157,7 +198,6 @@ const BeanBuddy = () => (
   </svg>
 );
 
-/* ── Rotary knob SVG ── */
 const Knob = () => (
   <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
     <circle
@@ -181,7 +221,7 @@ const Knob = () => (
     />
     {[0, 45, 90, 135, 180, 225, 270, 315].map((a, i) => (
       <line
-        key={`knob-${i}`}
+        key={i}
         x1={14 + 10.5 * Math.sin((a * Math.PI) / 180)}
         y1={14 - 10.5 * Math.cos((a * Math.PI) / 180)}
         x2={14 + 12 * Math.sin((a * Math.PI) / 180)}
@@ -194,7 +234,6 @@ const Knob = () => (
   </svg>
 );
 
-/* ── Pressure gauge SVG ── */
 const Gauge = () => (
   <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
     <circle
@@ -208,7 +247,7 @@ const Gauge = () => (
     <circle cx="19" cy="19" r="13" fill="#eee" stroke="#888" strokeWidth="1" />
     {[150, 170, 190, 210, 230].map((a, i) => (
       <line
-        key={`gauge-${i}`}
+        key={i}
         x1={19 + 11 * Math.cos((a * Math.PI) / 180)}
         y1={19 + 11 * Math.sin((a * Math.PI) / 180)}
         x2={19 + 13 * Math.cos((a * Math.PI) / 180)}
@@ -241,7 +280,6 @@ const Gauge = () => (
   </svg>
 );
 
-/* ── Send icon ── */
 const SendIcon = () => (
   <svg
     width="14"
@@ -259,17 +297,31 @@ const SendIcon = () => (
 );
 
 export const CoffeeChatbot: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState<Message[]>([makeInitial()]);
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [hearts, setHearts] = useState<HeartParticle[]>([]);
+  const [showCoffeeMenu, setShowCoffeeMenu] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentDone, setPaymentDone] = useState(false);
+  const [order, setOrder] = useState<OrderItem[]>([]);
+  const [emojiIdx, setEmojiIdx] = useState(0);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [pendingSize, setPendingSize] = useState<string | null>(null);
+  const [pendingItem, setPendingItem] = useState<(typeof MENU)[0] | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
+  const heartBtnRef = useRef<HTMLButtonElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
 
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text.trim() || isLoading) return;
+      setShowCoffeeMenu(false);
+      setShowEmojiPicker(false);
 
       const userMsg: Message = { from: "user", text };
       setMessages((prev) => [...prev, userMsg]);
@@ -278,24 +330,42 @@ export const CoffeeChatbot: React.FC = () => {
 
       try {
         const botText = await sendCoffeeChat(text, history);
+        const lower = botText.toLowerCase();
 
-        // Suggest pickup chips if the bot is confirming an order
-        const lowerText = botText.toLowerCase();
         const chips =
-          lowerText.includes("pickup") ||
-          lowerText.includes("pick up") ||
-          lowerText.includes("when")
-            ? ["Now", "10 mins", "20 mins"]
-            : lowerText.includes("size") ||
-              lowerText.includes("small") ||
-              lowerText.includes("large")
+          lower.includes("size") ||
+          lower.includes("small") ||
+          lower.includes("large")
             ? ["Small", "Medium", "Large"]
+            : lower.includes("pickup") ||
+              lower.includes("pick up") ||
+              lower.includes("when")
+            ? ["Now", "10 mins", "20 mins"]
+            : lower.includes("add-on") ||
+              lower.includes("extra") ||
+              lower.includes("customize")
+            ? [
+                "Extra shot +$0.75",
+                "Oat milk +$0.50",
+                "Vanilla syrup +$0.50",
+                "No thanks",
+              ]
+            : lower.includes("pay") ||
+              lower.includes("checkout") ||
+              lower.includes("total")
+            ? ["💳 Pay Now", "Keep ordering"]
             : undefined;
+
+        // Detect payment trigger
+        if (
+          lower.includes("ready to pay") ||
+          lower.includes("proceed to pay")
+        ) {
+          setTimeout(() => setShowPayment(true), 800);
+        }
 
         const botMsg: Message = { from: "bot", text: botText, chips };
         setMessages((prev) => [...prev, botMsg]);
-
-        // Update history for multi-turn context
         setHistory((prev) => [
           ...prev,
           { role: "user", parts: [{ text }] },
@@ -322,14 +392,91 @@ export const CoffeeChatbot: React.FC = () => {
     sendMessage(input);
   };
 
-  // Find index of last bot message (for chips display)
+  // ── Heart button ──
+  const spawnHearts = () => {
+    if (!heartBtnRef.current || !sectionRef.current) return;
+    const btnRect = heartBtnRef.current.getBoundingClientRect();
+    const heartEmojis = ["❤️", "🧡", "💛", "💚", "💙", "💜", "🤍", "🩷"];
+    const newHearts: HeartParticle[] = Array.from({ length: 8 }, (_, i) => ({
+      id: Date.now() + i,
+      x: btnRect.left + btnRect.width / 2 + (Math.random() - 0.5) * 60,
+      y: btnRect.top,
+      emoji: heartEmojis[Math.floor(Math.random() * heartEmojis.length)],
+      dx: (Math.random() - 0.5) * 40,
+    }));
+    setHearts((prev) => [...prev, ...newHearts]);
+    setTimeout(
+      () =>
+        setHearts((prev) =>
+          prev.filter((h) => !newHearts.find((nh) => nh.id === h.id))
+        ),
+      1400
+    );
+  };
+
+  // ── Coffee menu select ──
+  const selectCoffeeItem = (item: (typeof MENU)[0]) => {
+    setPendingItem(item);
+    setPendingSize(null);
+  };
+
+  const confirmSize = (size: string) => {
+    if (!pendingItem) return;
+    const price = pendingItem.base + SIZE_MOD[size];
+    const newItem: OrderItem = { name: pendingItem.name, size, price };
+    setOrder((prev) => [...prev, newItem]);
+    const msg = `I'd like a ${size} ${pendingItem.name} please`;
+    setPendingItem(null);
+    setShowCoffeeMenu(false);
+    sendMessage(msg);
+  };
+
+  // ── Emoji picker ──
+  const pickEmoji = (emoji: string) => {
+    setInput((prev) => prev + emoji);
+    setShowEmojiPicker(false);
+    inputRef.current?.focus();
+  };
+
+  // ── Power / Restart ──
+  const restart = () => {
+    const greeting =
+      RESTART_GREETINGS[Math.floor(Math.random() * RESTART_GREETINGS.length)];
+    setMessages([
+      {
+        from: "bot",
+        text: greeting,
+        chips: ["☕ See Menu", "Surprise me!", "I need caffeine"],
+      },
+    ]);
+    setHistory([]);
+    setOrder([]);
+    setShowCoffeeMenu(false);
+    setShowPayment(false);
+    setPaymentDone(false);
+    setShowEmojiPicker(false);
+    setPendingItem(null);
+  };
+
+  const orderTotal = order.reduce((s, i) => s + i.price, 0);
   const lastBotIdx = messages.reduce(
     (acc, m, i) => (m.from === "bot" ? i : acc),
     -1
   );
 
   return (
-    <section className="py-14 px-4 max-w-7xl mx-auto">
+    <section ref={sectionRef} className="py-14 px-4 max-w-7xl mx-auto relative">
+      {/* Floating hearts — fixed to viewport */}
+      {hearts.map((h) => (
+        <div
+          key={h.id}
+          className="fixed pointer-events-none z-[9999] text-xl heart-float"
+          style={{ left: h.x, top: h.y, transform: `translateX(${h.dx}px)` }}
+        >
+          {h.emoji}
+        </div>
+      ))}
+
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <span className="text-xl">☕</span>
@@ -337,41 +484,38 @@ export const CoffeeChatbot: React.FC = () => {
           Coffee Chatbot
         </h2>
         <span className="text-zinc-600 text-sm font-mono hidden sm:block">
-          — Python · NLP · CLI
+          — Python · NLP · Gemini AI
         </span>
       </div>
 
       <div className="flex flex-col lg:flex-row items-center gap-12">
-        {/* ── Espresso Machine Frame ── */}
+        {/* ── Espresso Machine ── */}
         <div className="shrink-0 mx-auto lg:mx-0" style={{ width: 330 }}>
           <div
             className="relative rounded-2xl overflow-hidden"
             style={{
               background:
-                "linear-gradient(160deg, #e0e0e0 0%, #c8c8c8 40%, #d4d4d4 100%)",
+                "linear-gradient(160deg,#e0e0e0 0%,#c8c8c8 40%,#d4d4d4 100%)",
               border: "2.5px solid #555",
               boxShadow:
-                "4px 6px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.6)",
+                "4px 6px 24px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.6)",
             }}
           >
-            {/* ── Top control panel ── */}
+            {/* Top control panel */}
             <div
               className="px-4 pt-3 pb-2"
               style={{
-                background: "linear-gradient(to bottom, #aaa, #999)",
+                background: "linear-gradient(to bottom,#aaa,#999)",
                 borderBottom: "2px solid #666",
               }}
             >
-              {/* Top ridge */}
               <div
                 className="h-1 rounded-full mb-3"
                 style={{
-                  background: "linear-gradient(to right, #777, #bbb, #777)",
+                  background: "linear-gradient(to right,#777,#bbb,#777)",
                 }}
               />
-
               <div className="flex items-center justify-between">
-                {/* Left: Steam knob */}
                 <div className="flex flex-col items-center gap-0.5">
                   <span className="text-[9px] font-bold text-zinc-700 tracking-widest uppercase">
                     STEAM
@@ -379,7 +523,7 @@ export const CoffeeChatbot: React.FC = () => {
                   <Knob />
                   <div className="flex items-center gap-1 mt-0.5">
                     <div
-                      className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-sm"
+                      className="w-1.5 h-1.5 rounded-full bg-green-500"
                       style={{ boxShadow: "0 0 4px #22c55e" }}
                     />
                     <span className="text-[8px] text-zinc-600 font-mono">
@@ -387,8 +531,6 @@ export const CoffeeChatbot: React.FC = () => {
                     </span>
                   </div>
                 </div>
-
-                {/* Center: Display */}
                 <div className="flex-1 mx-3">
                   <div
                     className="rounded-md px-2 py-1.5 text-center"
@@ -411,17 +553,15 @@ export const CoffeeChatbot: React.FC = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* Right: Gauge */}
                 <div className="flex flex-col items-center">
                   <Gauge />
                 </div>
               </div>
             </div>
 
-            {/* ── Screen / Chat area ── */}
+            {/* Screen / Chat area */}
             <div
-              className="mx-3 my-2 rounded-lg overflow-hidden flex flex-col"
+              className="mx-3 my-2 rounded-lg overflow-hidden flex flex-col relative"
               style={{
                 background: "white",
                 border: "2px solid #888",
@@ -429,9 +569,9 @@ export const CoffeeChatbot: React.FC = () => {
                 boxShadow: "inset 0 2px 6px rgba(0,0,0,0.15)",
               }}
             >
-              {/* Welcome banner */}
+              {/* Banner */}
               <div
-                className="px-3 pt-2 pb-1 border-b border-zinc-200"
+                className="px-3 pt-2 pb-1 border-b border-zinc-200 shrink-0"
                 style={{ background: "#fafafa" }}
               >
                 <div className="text-center text-[11px] font-bold text-zinc-800 tracking-wide">
@@ -441,63 +581,23 @@ export const CoffeeChatbot: React.FC = () => {
 
               {/* Mascots */}
               <div
-                className="relative flex items-end justify-center gap-4 py-2 border-b border-zinc-100 overflow-hidden"
+                className="relative flex items-end justify-center gap-4 py-2 border-b border-zinc-100 overflow-hidden shrink-0"
                 style={{ background: "#f8f7f5" }}
               >
-                <span
-                  className="absolute text-[10px] select-none"
-                  style={{ top: 4, left: 14, opacity: 0.55 }}
-                >
-                  ✦
-                </span>
-                <span
-                  className="absolute text-[8px]  select-none"
-                  style={{ top: 10, left: 36, opacity: 0.4 }}
-                >
-                  ♥
-                </span>
-                <span
-                  className="absolute text-[10px] select-none"
-                  style={{ top: 2, left: 72, opacity: 0.5 }}
-                >
-                  ✧
-                </span>
-                <span
-                  className="absolute text-[8px]  select-none"
-                  style={{ top: 8, left: 108, opacity: 0.35 }}
-                >
-                  ✦
-                </span>
-                <span
-                  className="absolute text-[9px]  select-none"
-                  style={{ top: 3, right: 72, opacity: 0.5 }}
-                >
-                  ♥
-                </span>
-                <span
-                  className="absolute text-[10px] select-none"
-                  style={{ top: 6, right: 36, opacity: 0.45 }}
-                >
-                  ✧
-                </span>
-                <span
-                  className="absolute text-[8px]  select-none"
-                  style={{ top: 2, right: 14, opacity: 0.4 }}
-                >
-                  ✦
-                </span>
-                <span
-                  className="absolute text-[9px]  select-none"
-                  style={{ bottom: 8, left: 24, opacity: 0.3 }}
-                >
-                  ✦
-                </span>
-                <span
-                  className="absolute text-[8px]  select-none"
-                  style={{ bottom: 6, right: 28, opacity: 0.3 }}
-                >
-                  ♥
-                </span>
+                {["✦", "♥", "✧", "✦", "♥", "✧", "✦"].map((s, i) => (
+                  <span
+                    key={i}
+                    className="absolute text-[9px] select-none"
+                    style={{
+                      top: i % 2 === 0 ? 3 : 8,
+                      left: i < 4 ? 14 + i * 28 : undefined,
+                      right: i >= 4 ? 14 + (i - 4) * 28 : undefined,
+                      opacity: 0.4,
+                    }}
+                  >
+                    {s}
+                  </span>
+                ))}
                 <BrewBot />
                 <div className="mb-6 px-2 py-1 bg-white border border-zinc-300 rounded-xl text-[9px] text-zinc-600 font-mono shadow-sm relative leading-tight">
                   hi! ☕✨
@@ -521,10 +621,10 @@ export const CoffeeChatbot: React.FC = () => {
                 <BeanBuddy />
               </div>
 
-              {/* Chat messages — scrollable */}
+              {/* Chat messages */}
               <div
                 ref={chatAreaRef}
-                className="flex-1 overflow-y-auto flex flex-col px-3 py-2 gap-1.5"
+                className="flex-1 overflow-y-auto flex flex-col px-3 py-2 gap-1.5 relative"
                 style={{
                   scrollbarWidth: "thin",
                   scrollbarColor: "#d1d5db transparent",
@@ -552,7 +652,6 @@ export const CoffeeChatbot: React.FC = () => {
                     >
                       {msg.text}
                     </div>
-                    {/* Show chips only on the last bot message */}
                     {msg.from === "bot" &&
                       i === lastBotIdx &&
                       msg.chips &&
@@ -561,9 +660,13 @@ export const CoffeeChatbot: React.FC = () => {
                           {msg.chips.map((chip) => (
                             <button
                               key={chip}
-                              onClick={() => sendMessage(chip)}
+                              onClick={() =>
+                                chip === "💳 Pay Now"
+                                  ? setShowPayment(true)
+                                  : sendMessage(chip)
+                              }
                               disabled={isLoading}
-                              className="px-2 py-0.5 text-[9.5px] text-zinc-600 bg-white border border-zinc-300 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors disabled:opacity-50 cursor-pointer"
+                              className="px-2 py-0.5 text-[9.5px] text-zinc-600 bg-white border border-zinc-300 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors cursor-pointer"
                               style={{ borderRadius: 20 }}
                             >
                               {chip}
@@ -574,38 +677,246 @@ export const CoffeeChatbot: React.FC = () => {
                   </div>
                 ))}
 
-                {/* Typing indicator */}
                 {isLoading && (
                   <div className="flex items-center gap-1 machine-in">
                     <div
                       className="bg-white border border-zinc-300 px-3 py-2 shadow-sm flex gap-1"
                       style={{ borderRadius: "12px 12px 12px 2px" }}
                     >
-                      <span
-                        className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce"
-                        style={{ animationDelay: "0ms" }}
-                      />
-                      <span
-                        className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce"
-                        style={{ animationDelay: "150ms" }}
-                      />
-                      <span
-                        className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce"
-                        style={{ animationDelay: "300ms" }}
-                      />
+                      {[0, 150, 300].map((d) => (
+                        <span
+                          key={d}
+                          className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce"
+                          style={{ animationDelay: `${d}ms` }}
+                        />
+                      ))}
                     </div>
                   </div>
                 )}
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* ── Real input row ── */}
+              {/* ── Coffee Menu Overlay ── */}
+              {showCoffeeMenu && (
+                <div
+                  className="absolute inset-0 bg-white z-20 flex flex-col"
+                  style={{ top: 0 }}
+                >
+                  <div
+                    className="flex items-center justify-between px-3 py-2 border-b border-zinc-200 shrink-0"
+                    style={{ background: "#fafafa" }}
+                  >
+                    <span className="text-[11px] font-bold text-zinc-800 tracking-wide">
+                      ☕ Brewed Beans Menu
+                    </span>
+                    <button
+                      onClick={() => {
+                        setShowCoffeeMenu(false);
+                        setPendingItem(null);
+                      }}
+                      className="text-zinc-400 hover:text-zinc-700 text-lg leading-none"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  {!pendingItem ? (
+                    <div
+                      className="flex-1 overflow-y-auto py-1"
+                      style={{ scrollbarWidth: "thin" }}
+                    >
+                      {MENU.map((item) => (
+                        <button
+                          key={item.name}
+                          onClick={() => selectCoffeeItem(item)}
+                          className="w-full flex items-center justify-between px-3 py-2 hover:bg-amber-50 transition-colors border-b border-zinc-100 text-left"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">{item.emoji}</span>
+                            <div>
+                              <div className="text-[11px] font-bold text-zinc-800">
+                                {item.name}
+                              </div>
+                              <div className="text-[9px] text-zinc-400">
+                                {item.desc}
+                              </div>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono font-bold text-amber-700">
+                            from ${item.base.toFixed(2)}
+                          </span>
+                        </button>
+                      ))}
+                      <div className="px-3 py-1.5 text-[8px] text-zinc-400 font-mono text-center">
+                        Add-ons available after size selection
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center gap-3 px-4">
+                      <div className="text-3xl">{pendingItem.emoji}</div>
+                      <div className="text-[12px] font-bold text-zinc-800">
+                        {pendingItem.name}
+                      </div>
+                      <div className="text-[9px] text-zinc-400 mb-1">
+                        Choose your size:
+                      </div>
+                      {(["Small", "Medium", "Large"] as const).map((size) => (
+                        <button
+                          key={size}
+                          onClick={() => confirmSize(size)}
+                          className="w-full py-2 border border-zinc-300 rounded-xl text-[11px] font-medium text-zinc-700 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-800 transition-colors flex justify-between px-4"
+                        >
+                          <span>{size}</span>
+                          <span className="font-mono text-amber-700">
+                            ${(pendingItem.base + SIZE_MOD[size]).toFixed(2)}
+                          </span>
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setPendingItem(null)}
+                        className="text-[9px] text-zinc-400 hover:text-zinc-600 mt-1"
+                      >
+                        ← Back to menu
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Payment Overlay ── */}
+              {showPayment && (
+                <div className="absolute inset-0 bg-white z-30 flex flex-col">
+                  {!paymentDone ? (
+                    <>
+                      <div
+                        className="px-3 py-2 border-b border-zinc-200 shrink-0"
+                        style={{ background: "#fafafa" }}
+                      >
+                        <div className="text-center text-[11px] font-bold text-zinc-800 tracking-wide">
+                          💳 Checkout
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-y-auto px-3 py-2">
+                        {order.length > 0 ? (
+                          <>
+                            <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-2">
+                              Your Order
+                            </div>
+                            {order.map((item, i) => (
+                              <div
+                                key={i}
+                                className="flex justify-between text-[10.5px] text-zinc-700 py-1 border-b border-zinc-100"
+                              >
+                                <span>
+                                  {item.size} {item.name}
+                                </span>
+                                <span className="font-mono text-amber-700">
+                                  ${item.price.toFixed(2)}
+                                </span>
+                              </div>
+                            ))}
+                            <div className="flex justify-between text-[11px] font-bold text-zinc-900 pt-2 mt-1">
+                              <span>Total</span>
+                              <span className="font-mono">
+                                ${orderTotal.toFixed(2)}
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-center text-[10px] text-zinc-400 py-4">
+                            Your order is being tracked in the chat.
+                            <br />
+                            Use the menu button to add items.
+                          </div>
+                        )}
+                        <div className="text-[8px] text-zinc-400 text-center mt-2 font-mono">
+                          Tax included · Pickup in 3–5 min
+                        </div>
+                      </div>
+                      <div className="px-3 pb-3 flex flex-col gap-2 shrink-0">
+                        <button
+                          onClick={() => setPaymentDone(true)}
+                          className="w-full py-2 rounded-xl text-[11px] font-bold text-white flex items-center justify-center gap-2"
+                          style={{ background: "#000" }}
+                        >
+                          <span>🍎</span> Apple Pay
+                        </button>
+                        <button
+                          onClick={() => setPaymentDone(true)}
+                          className="w-full py-2 rounded-xl text-[11px] font-bold text-white flex items-center justify-center gap-2"
+                          style={{
+                            background:
+                              "linear-gradient(135deg,#1a56db,#3b82f6)",
+                          }}
+                        >
+                          <span>💳</span> Credit Card
+                        </button>
+                        <button
+                          onClick={() => setShowPayment(false)}
+                          className="text-[9px] text-zinc-400 hover:text-zinc-600 text-center mt-1"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center gap-3 px-4 text-center">
+                      <div className="text-4xl animate-bounce">☕</div>
+                      <div className="text-[13px] font-bold text-zinc-800">
+                        Payment confirmed!
+                      </div>
+                      <div className="text-[10px] text-zinc-500 leading-relaxed">
+                        Thank you! Your order is being prepared.
+                        <br />
+                        Ready in approximately 3–5 minutes ✨
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowPayment(false);
+                          setPaymentDone(false);
+                          setOrder([]);
+                          restart();
+                        }}
+                        className="mt-2 px-4 py-1.5 bg-amber-600 text-white text-[10px] font-bold rounded-full hover:bg-amber-700 transition-colors"
+                      >
+                        Start New Order
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Emoji Picker ── */}
+              {showEmojiPicker && (
+                <div className="absolute bottom-10 left-2 right-2 z-20 bg-white border border-zinc-200 rounded-xl shadow-lg p-2">
+                  <div className="grid grid-cols-6 gap-1">
+                    {EMOJI_SET.map((em) => (
+                      <button
+                        key={em}
+                        onClick={() => pickEmoji(em)}
+                        className="text-base hover:bg-amber-50 rounded-lg p-1 transition-colors"
+                      >
+                        {em}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Input row */}
               <form
                 onSubmit={handleSubmit}
-                className="flex items-center gap-1.5 px-2 py-1.5 border-t border-zinc-200"
+                className="flex items-center gap-1.5 px-2 py-1.5 border-t border-zinc-200 shrink-0"
                 style={{ background: "#f5f4f2" }}
               >
-                <div className="text-base select-none">🙂</div>
+                <button
+                  type="button"
+                  onClick={() => setShowEmojiPicker((p) => !p)}
+                  className="text-base select-none hover:scale-110 transition-transform"
+                  title="Choose emoji"
+                >
+                  {EMOJI_SET[emojiIdx]}
+                </button>
                 <input
                   ref={inputRef}
                   type="text"
@@ -615,6 +926,15 @@ export const CoffeeChatbot: React.FC = () => {
                   disabled={isLoading}
                   className="flex-1 bg-transparent text-[10px] text-zinc-700 placeholder-zinc-400 font-mono outline-none disabled:opacity-50"
                 />
+                {order.length > 0 && !showPayment && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPayment(true)}
+                    className="text-[8px] font-mono bg-amber-600 text-white px-1.5 py-0.5 rounded-full hover:bg-amber-700 transition-colors whitespace-nowrap"
+                  >
+                    Pay ${orderTotal.toFixed(2)}
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={isLoading || !input.trim()}
@@ -630,41 +950,85 @@ export const CoffeeChatbot: React.FC = () => {
               </form>
             </div>
 
-            {/* ── Bottom control buttons ── */}
+            {/* Bottom control buttons */}
             <div
               className="flex items-center justify-between px-5 py-2"
               style={{
-                background: "linear-gradient(to bottom, #b0b0b0, #a0a0a0)",
+                background: "linear-gradient(to bottom,#b0b0b0,#a0a0a0)",
                 borderTop: "1.5px solid #777",
               }}
             >
-              {["♥", "☕", "🙂", "⏻"].map((icon) => (
-                <div
-                  key={icon}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm cursor-pointer"
-                  style={{
-                    background: "linear-gradient(145deg, #c8c8c8, #aaa)",
-                    border: "1.5px solid #777",
-                    boxShadow:
-                      "0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.4)",
-                  }}
-                >
-                  <span style={{ fontSize: 13 }}>{icon}</span>
-                </div>
-              ))}
+              {/* ♥ Heart */}
+              <button
+                ref={heartBtnRef}
+                onClick={spawnHearts}
+                title="Spread the love"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm cursor-pointer active:scale-95 transition-transform hover:brightness-110"
+                style={{
+                  background: "linear-gradient(145deg,#c8c8c8,#aaa)",
+                  border: "1.5px solid #777",
+                  boxShadow:
+                    "0 2px 4px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.4)",
+                }}
+              >
+                <span style={{ fontSize: 13 }}>♥</span>
+              </button>
+
+              {/* ☕ Coffee Menu */}
+              <button
+                onClick={() => {
+                  setShowCoffeeMenu((p) => !p);
+                  setPendingItem(null);
+                }}
+                title="See coffee menu"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm cursor-pointer active:scale-95 transition-transform hover:brightness-110"
+                style={{
+                  background: showCoffeeMenu
+                    ? "linear-gradient(145deg,#f5c842,#e0a800)"
+                    : "linear-gradient(145deg,#c8c8c8,#aaa)",
+                  border: "1.5px solid #777",
+                  boxShadow:
+                    "0 2px 4px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.4)",
+                }}
+              >
+                <span style={{ fontSize: 13 }}>☕</span>
+              </button>
+
+              {/* 🙂 Emoji Cycle */}
+              <button
+                onClick={() => setEmojiIdx((p) => (p + 1) % EMOJI_SET.length)}
+                title="Change emoji"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm cursor-pointer active:scale-95 transition-transform hover:brightness-110"
+                style={{
+                  background: "linear-gradient(145deg,#c8c8c8,#aaa)",
+                  border: "1.5px solid #777",
+                  boxShadow:
+                    "0 2px 4px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.4)",
+                }}
+              >
+                <span style={{ fontSize: 13 }}>{EMOJI_SET[emojiIdx]}</span>
+              </button>
+
+              {/* ⏻ Restart */}
+              <button
+                onClick={restart}
+                title="Restart conversation"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm cursor-pointer active:scale-95 transition-transform hover:brightness-110"
+                style={{
+                  background: "linear-gradient(145deg,#c8c8c8,#aaa)",
+                  border: "1.5px solid #777",
+                  boxShadow:
+                    "0 2px 4px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.4)",
+                }}
+              >
+                <span style={{ fontSize: 13 }}>⏻</span>
+              </button>
             </div>
 
-            {/* ── B&W Coffee logo + drip tray row ── */}
+            {/* Logo row */}
             <div className="flex items-end justify-between px-3 mb-1">
-              {/* Logo bottom-left */}
               <div className="flex flex-col items-center gap-0.5">
-                <svg
-                  width="30"
-                  height="28"
-                  viewBox="0 0 30 28"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
+                <svg width="30" height="28" viewBox="0 0 30 28" fill="none">
                   <path
                     d="M8 4 Q7 2 8 0 Q9 2 8 4"
                     stroke="#555"
@@ -720,15 +1084,8 @@ export const CoffeeChatbot: React.FC = () => {
                   AVSA
                 </span>
               </div>
-              {/* Bean logo bottom-right */}
               <div className="flex flex-col items-center gap-0.5">
-                <svg
-                  width="22"
-                  height="26"
-                  viewBox="0 0 22 26"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
+                <svg width="22" height="26" viewBox="0 0 22 26" fill="none">
                   <ellipse
                     cx="11"
                     cy="13"
@@ -761,7 +1118,7 @@ export const CoffeeChatbot: React.FC = () => {
               </div>
             </div>
 
-            {/* ── Drip tray ── */}
+            {/* Drip tray */}
             <div
               className="mx-3 mb-3 rounded-b-lg overflow-hidden"
               style={{
@@ -773,7 +1130,7 @@ export const CoffeeChatbot: React.FC = () => {
               <div className="h-6 flex items-center justify-center relative overflow-hidden">
                 {Array.from({ length: 18 }).map((_, i) => (
                   <div
-                    key={`tray-${i}`}
+                    key={i}
                     className="absolute top-0 bottom-0 w-px"
                     style={{ left: `${(i + 1) * 5.5}%`, background: "#999" }}
                   />
@@ -829,15 +1186,38 @@ export const CoffeeChatbot: React.FC = () => {
             </div>
           </div>
 
+          <div className="w-full bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 text-left">
+            <div className="text-xs font-mono text-zinc-500 uppercase tracking-widest mb-3">
+              Machine Controls
+            </div>
+            <div className="space-y-2 text-xs text-zinc-400">
+              <div className="flex gap-3">
+                <span className="w-5 text-center">♥</span>
+                <span>Spread some love — pop hearts on screen</span>
+              </div>
+              <div className="flex gap-3">
+                <span className="w-5 text-center">☕</span>
+                <span>Open the full menu with prices to order</span>
+              </div>
+              <div className="flex gap-3">
+                <span className="w-5 text-center">🙂</span>
+                <span>Cycle emoji — click to change your chat face</span>
+              </div>
+              <div className="flex gap-3">
+                <span className="w-5 text-center">⏻</span>
+                <span>Restart — fresh greeting, new conversation</span>
+              </div>
+            </div>
+          </div>
+
           <p className="text-zinc-400 text-sm leading-relaxed">
-            A conversational Python chatbot with a coffee shop personality. Uses
-            rule-based NLP to recommend drinks, share brewing tips, and keep you
-            caffeinated through late-night coding sessions. Now with a live AI
-            demo — try chatting with BrewBot!
+            A conversational AI barista powered by Gemini. Full menu ordering
+            with live price calculation, Apple Pay & Credit Card checkout, and a
+            coffee machine interface built in React.
           </p>
 
           <div className="flex flex-wrap gap-2 justify-center">
-            {["Python", "NLP", "CLI", "NLTK", "Regex", "Gemini AI"].map(
+            {["Python", "NLP", "React", "Gemini AI", "TypeScript", "CSS"].map(
               (tag) => (
                 <span
                   key={tag}
@@ -870,11 +1250,14 @@ export const CoffeeChatbot: React.FC = () => {
       </div>
 
       <style>{`
-        @keyframes machineIn {
-          from { opacity: 0; transform: translateY(5px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes machineIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
         .machine-in { animation: machineIn 0.25s ease-out forwards; }
+        @keyframes heartFloat {
+          0%   { opacity:1; transform:translateY(0) scale(0.9); }
+          60%  { opacity:0.8; transform:translateY(-80px) scale(1.3); }
+          100% { opacity:0; transform:translateY(-140px) scale(0.5); }
+        }
+        .heart-float { animation: heartFloat 1.3s ease-out forwards; }
       `}</style>
     </section>
   );

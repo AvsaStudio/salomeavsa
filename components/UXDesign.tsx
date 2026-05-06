@@ -113,12 +113,12 @@ export const UXDesign: React.FC = () => {
     const secondary = projects.filter(p => !p.featured);
 
     return (
-        <section id="ux-design" className="py-20 px-4 max-w-6xl mx-auto">
+        <section id="ux-design" className="scroll-mt-28 py-20 px-4 max-w-6xl mx-auto">
             {/* Section header */}
             <div className="mb-12">
                 <p className="text-xs font-mono text-blue-400 uppercase tracking-widest mb-3">Design Portfolio</p>
                 <h2 className="text-4xl font-bold text-white font-gemola tracking-wide mb-4">UX / UI Design</h2>
-                <p className="text-zinc-400 max-w-2xl text-sm leading-relaxed mb-5">
+                <p className="max-w-2xl text-base leading-8 text-zinc-300 mb-5">
                     UX/UI practice spanning fintech, transit, security, and SaaS products.
                     Formally trained at <span className="text-zinc-300">FIT (2019)</span> and applied across professional roles including{' '}
                     <span className="text-zinc-300">Kollins</span>, <span className="text-zinc-300">H. Stabbins</span>, and{' '}
@@ -149,12 +149,12 @@ export const UXDesign: React.FC = () => {
                                 <span className="text-[10px] font-bold font-mono bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full uppercase tracking-widest">
                                     Featured
                                 </span>
-                                <span className="text-xs font-mono text-zinc-500">{featured.year}</span>
+                                <span className="text-xs font-mono text-zinc-400">{featured.year}</span>
                             </div>
                             <h3 className="text-2xl font-bold text-white mb-1 group-hover:text-blue-100 transition-colors">
                                 {featured.title}
                             </h3>
-                            <p className="text-zinc-400 text-sm mb-4">{featured.subtitle}</p>
+                            <p className="text-zinc-300 text-sm leading-7 mb-4">{featured.subtitle}</p>
 
                             <div className="flex flex-wrap gap-2 mb-6">
                                 {featured.category.map(c => (
@@ -163,7 +163,7 @@ export const UXDesign: React.FC = () => {
                                     </span>
                                 ))}
                                 {featured.tools.map(t => (
-                                    <span key={t} className="text-[10px] font-mono bg-zinc-900 border border-zinc-700 text-zinc-500 px-2 py-1 rounded">
+                                    <span key={t} className="text-[10px] font-mono bg-zinc-900 border border-zinc-700 text-zinc-400 px-2 py-1 rounded">
                                         {t}
                                     </span>
                                 ))}
@@ -228,11 +228,11 @@ export const UXDesign: React.FC = () => {
                     >
                         <div className="flex items-start justify-between mb-3">
                             <div>
-                                <span className="text-xs font-mono text-zinc-500 block mb-1">{project.year}</span>
+                                <span className="text-xs font-mono text-zinc-400 block mb-1">{project.year}</span>
                                 <h3 className="text-lg font-bold text-white group-hover:text-blue-100 transition-colors">
                                     {project.title}
                                 </h3>
-                                <p className="text-zinc-500 text-xs mt-0.5">{project.subtitle}</p>
+                                <p className="text-zinc-400 text-xs mt-0.5 leading-6">{project.subtitle}</p>
                             </div>
                             <div className="text-zinc-600 group-hover:text-zinc-400 transition-colors text-xl font-light select-none ml-2 flex-shrink-0">
                                 {expanded === project.id ? '−' : '+'}
@@ -253,7 +253,7 @@ export const UXDesign: React.FC = () => {
                         </div>
 
                         {expanded !== project.id && (
-                            <p className="text-zinc-500 text-xs leading-relaxed line-clamp-3">
+                            <p className="text-zinc-400 text-xs leading-6 line-clamp-3">
                                 {project.challenge}
                             </p>
                         )}
@@ -272,21 +272,21 @@ export const UXDesign: React.FC = () => {
                                     <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-2">Deliverables</p>
                                     <ul className="space-y-1.5">
                                         {project.deliverables.map(d => (
-                                            <li key={d} className="flex items-start gap-2 text-xs text-zinc-400">
-                                                <div className="w-1 h-1 rounded-full bg-blue-500/60 mt-1.5 flex-shrink-0" />
-                                                {d}
-                                            </li>
+                                                <li key={d} className="flex items-start gap-2 text-xs leading-6 text-zinc-300">
+                                                    <div className="w-1 h-1 rounded-full bg-blue-500/60 mt-1.5 flex-shrink-0" />
+                                                    {d}
+                                                </li>
                                         ))}
                                     </ul>
                                 </div>
                                 <div className="bg-zinc-950/50 rounded-lg p-3">
                                     <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest mb-1">Outcome</p>
-                                    <p className="text-zinc-400 text-xs leading-relaxed">{project.outcome}</p>
+                                    <p className="text-zinc-300 text-xs leading-6">{project.outcome}</p>
                                 </div>
                             </div>
                         )}
 
-                        <div className="mt-4 pt-4 border-t border-zinc-800 flex items-center text-xs text-zinc-600 font-mono">
+                        <div className="mt-4 pt-4 border-t border-zinc-800 flex items-center text-xs text-zinc-400 font-mono">
                             <div className="w-1.5 h-1.5 bg-zinc-700 rounded-full mr-2 group-hover:bg-blue-400 transition-colors"></div>
                             {expanded === project.id ? 'Click to collapse' : 'Click to expand'}
                         </div>

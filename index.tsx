@@ -9,7 +9,6 @@ import App from "./App";
 
 // Prevent browser from restoring previous scroll position
 if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-window.scrollTo(0, 0);
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {

@@ -1,0 +1,208 @@
+.employment-history-page {
+  @apply flex min-h-screen flex-col bg-zinc-950 text-zinc-50;
+}
+
+.employment-history-page ::selection {
+  @apply bg-blue-500/30;
+}
+
+.employment-history-page__main {
+  @apply mx-auto flex-1 max-w-6xl px-6 pb-56 pt-40 sm:px-10 sm:pb-64 sm:pt-44;
+}
+
+.employment-history-page__header {
+  @apply mb-20;
+}
+
+.employment-history-page__eyebrow {
+  @apply mb-4 flex items-center gap-3;
+}
+
+.employment-history-page__eyebrow-icon {
+  @apply h-6 w-6 text-blue-500;
+}
+
+.employment-history-page__eyebrow-text {
+  @apply font-mono text-xs uppercase tracking-widest text-zinc-500;
+}
+
+.employment-history-page__title {
+  @apply mb-6 text-5xl font-bold tracking-tight text-white sm:text-6xl;
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+.employment-history-page__intro {
+  @apply max-w-2xl text-lg leading-relaxed text-zinc-400;
+}
+
+.employment-history-page__stats {
+  @apply mt-14 flex flex-wrap gap-6 border-t border-zinc-800 pt-14;
+}
+
+.employment-history-page__stat-value {
+  @apply text-3xl font-bold text-white;
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+.employment-history-page__stat-label {
+  @apply mt-1 font-mono text-xs uppercase tracking-wider text-zinc-500;
+}
+
+.employment-history-page__filters {
+  @apply mb-12 flex gap-2;
+}
+
+.employment-history-page__filter-button {
+  @apply rounded-full border px-4 py-2 text-sm font-medium transition-colors;
+}
+
+.employment-history-page__filter-button--active {
+  @apply border-zinc-100 bg-zinc-100 text-zinc-900;
+}
+
+.employment-history-page__filter-button--inactive {
+  @apply border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-white;
+}
+
+.employment-history-page__timeline {
+  @apply relative space-y-10;
+}
+
+.employment-history-page__timeline-line {
+  @apply absolute bottom-0 left-0 top-3 hidden w-px bg-zinc-800 sm:block;
+}
+
+.employment-history-page__timeline-item {
+  @apply relative sm:pl-10;
+  animation: employment-history-fade-in 0.5s ease both;
+}
+
+.employment-history-page__timeline-dot {
+  @apply absolute left-[-5px] top-3 hidden h-2.5 w-2.5 rounded-full ring-4 ring-zinc-950 sm:block;
+}
+
+.employment-history-page__timeline-dot--engineering {
+  @apply bg-blue-500;
+}
+
+.employment-history-page__timeline-dot--design {
+  @apply bg-violet-500;
+}
+
+.employment-history-page__card {
+  @apply rounded-2xl border border-zinc-800 bg-zinc-900/50 p-8 transition-colors hover:border-zinc-700 sm:p-10;
+}
+
+.employment-history-page__card-header {
+  @apply mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between;
+}
+
+.employment-history-page__card-title-group {
+  @apply flex-1;
+}
+
+.employment-history-page__card-badges {
+  @apply mb-2 flex flex-wrap items-center gap-2;
+}
+
+.employment-history-page__category-badge {
+  @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium;
+}
+
+.employment-history-page__category-badge--engineering {
+  @apply border-blue-500/20 bg-blue-500/10 text-blue-400;
+}
+
+.employment-history-page__category-badge--design {
+  @apply border-violet-500/20 bg-violet-500/10 text-violet-400;
+}
+
+.employment-history-page__role {
+  @apply text-xl font-bold leading-tight text-white sm:text-2xl;
+}
+
+.employment-history-page__company {
+  @apply mt-1 text-base font-medium text-zinc-300;
+}
+
+.employment-history-page__meta {
+  @apply flex shrink-0 flex-col items-start gap-1.5 sm:items-end;
+}
+
+.employment-history-page__meta-item {
+  @apply flex items-center gap-1.5 font-mono text-xs;
+}
+
+.employment-history-page__meta-item--primary {
+  @apply text-zinc-400;
+}
+
+.employment-history-page__meta-item--secondary {
+  @apply text-zinc-500;
+}
+
+.employment-history-page__meta-icon {
+  @apply h-3.5 w-3.5;
+}
+
+.employment-history-page__summary {
+  @apply mb-7 border-b border-zinc-800 pb-7 text-sm leading-relaxed text-zinc-400;
+}
+
+.employment-history-page__highlight-groups {
+  @apply mb-7 space-y-6;
+}
+
+.employment-history-page__highlight-label {
+  @apply mb-3 font-mono text-xs uppercase tracking-widest text-zinc-500;
+}
+
+.employment-history-page__highlight-list {
+  @apply space-y-2.5;
+}
+
+.employment-history-page__highlight-item {
+  @apply flex items-start gap-3 text-sm leading-relaxed text-zinc-300;
+}
+
+.employment-history-page__highlight-bullet {
+  @apply mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-600;
+}
+
+.employment-history-page__tech-list {
+  @apply flex flex-wrap gap-2 border-t border-zinc-800 pt-6;
+}
+
+.employment-history-page__tech-tag {
+  @apply rounded-md bg-zinc-800 px-2.5 py-1 font-mono text-xs text-zinc-400;
+}
+
+.employment-history-page__footer {
+  @apply mt-28 flex flex-col items-start justify-between gap-8 border-t border-zinc-800 pt-14 sm:flex-row sm:items-center;
+}
+
+.employment-history-page__footer-copy {
+  @apply text-sm text-zinc-400;
+}
+
+.employment-history-page__footer-copy-strong {
+  @apply mt-1 font-medium text-white;
+}
+
+.employment-history-page__footer-link {
+  @apply shrink-0 rounded-full bg-zinc-100 px-6 py-3 text-sm font-bold text-zinc-900 transition-colors hover:bg-white;
+}
+
+@keyframes employment-history-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

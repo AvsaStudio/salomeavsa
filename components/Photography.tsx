@@ -57,7 +57,7 @@ export const Photography: React.FC = () => {
   }, []);
 
   return (
-    <section id="photography" className="py-14 px-4 max-w-7xl mx-auto bg-zinc-950">
+    <section id="photography" className="scroll-mt-28 py-14 px-4 max-w-7xl mx-auto bg-zinc-950">
         {/* Compact header */}
         <div className="flex items-center gap-3 mb-6">
             <CameraIcon className="w-5 h-5 text-red-600 shrink-0" />
@@ -81,7 +81,7 @@ export const Photography: React.FC = () => {
             <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
             <div className="absolute inset-0 bg-gradient-to-tr from-red-900/0 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             <ArrowUpTrayIcon className={`w-5 h-5 transition-colors ${isDragging ? 'text-red-500' : 'text-zinc-500'}`} />
-            <span className="text-zinc-500 font-mono text-xs uppercase tracking-widest">Drop negative here to develop</span>
+            <span className="text-zinc-400 font-mono text-xs uppercase tracking-widest">Drop negative here to develop</span>
         </label>
 
         {/* Photo Grid */}
@@ -122,7 +122,7 @@ export const Photography: React.FC = () => {
                    </div>
                    <div className="absolute inset-0 p-3 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                        <div className="text-white text-sm font-gemola tracking-wide">Session 00{i}</div>
-                       <div className="text-zinc-400 text-[10px] font-mono">ISO 400 · f/1.8</div>
+                       <div className="text-zinc-300 text-[10px] font-mono">ISO 400 · f/1.8</div>
                    </div>
                 </div>
             ))}

@@ -1,0 +1,15 @@
+.home-page {
+  @apply min-h-screen bg-zinc-950 text-zinc-50;
+}
+
+.home-page ::selection {
+  @apply bg-blue-500/30;
+}
+
+.home-page__main {
+  @apply block;
+}
+
+.home-page__section-fallback {
+  @apply mx-auto max-w-6xl px-4 py-16 text-center font-mono text-sm text-zinc-500;
+}
