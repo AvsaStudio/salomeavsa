@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { sendCoffeeChat, ChatMessage } from "../services/coffeeChat";
 
 type Message = { from: "bot" | "user"; text: string; chips?: string[] };
@@ -18,6 +18,7 @@ interface OrderItem {
   name: string;
   size: string;
   price: number;
+  addOns: string[];
 }
 
 const MENU = [
@@ -37,6 +38,12 @@ const SIZE_MOD: Record<string, number> = {
   Small: -0.5,
   Medium: 0,
   Large: 0.75,
+};
+
+const ADD_ONS: Record<string, { label: string; price: number }> = {
+  "Extra shot +$0.75": { label: "Extra shot", price: 0.75 },
+  "Oat milk +$0.50": { label: "Oat milk", price: 0.5 },
+  "Vanilla syrup +$0.50": { label: "Vanilla syrup", price: 0.5 },
 };
 
 const EMOJI_SET = [
@@ -312,9 +319,12 @@ export const CoffeeChatbot: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const chatAreaRef = useRef<HTMLDivElement>(null);
   const heartBtnRef = useRef<HTMLButtonElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -357,8 +367,9 @@ export const CoffeeChatbot: React.FC = () => {
 
         // Detect payment trigger
         if (
-          lower.includes("ready to pay") ||
-          lower.includes("proceed to pay")
+          order.length > 0 &&
+          (lower.includes("ready to pay") ||
+            lower.includes("proceed to pay"))
         ) {
           setTimeout(() => setShowPayment(true), 800);
         }
@@ -383,7 +394,7 @@ export const CoffeeChatbot: React.FC = () => {
         inputRef.current?.focus();
       }
     },
-    [history, isLoading]
+    [history, isLoading, order.length]
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -421,12 +432,49 @@ export const CoffeeChatbot: React.FC = () => {
   const confirmSize = (size: string) => {
     if (!pendingItem) return;
     const price = pendingItem.base + SIZE_MOD[size];
-    const newItem: OrderItem = { name: pendingItem.name, size, price };
+    const newItem: OrderItem = {
+      name: pendingItem.name,
+      size,
+      price,
+      addOns: [],
+    };
     setOrder((prev) => [...prev, newItem]);
     const msg = `I'd like a ${size} ${pendingItem.name} please`;
     setPendingItem(null);
     setShowCoffeeMenu(false);
     sendMessage(msg);
+  };
+
+  const handleChipClick = (chip: string) => {
+    if (chip === "☕ See Menu") {
+      setShowCoffeeMenu(true);
+      setPendingItem(null);
+      return;
+    }
+
+    if (chip === "💳 Pay Now") {
+      if (order.length > 0) setShowPayment(true);
+      else setShowCoffeeMenu(true);
+      return;
+    }
+
+    const addOn = ADD_ONS[chip];
+    if (addOn && order.length > 0) {
+      setOrder((currentOrder) =>
+        currentOrder.map((item, index) =>
+          index === currentOrder.length - 1 &&
+          !item.addOns.includes(addOn.label)
+            ? {
+                ...item,
+                price: item.price + addOn.price,
+                addOns: [...item.addOns, addOn.label],
+              }
+            : item
+        )
+      );
+    }
+
+    sendMessage(chip);
   };
 
   // ── Emoji picker ──
@@ -621,7 +669,6 @@ export const CoffeeChatbot: React.FC = () => {
 
               {/* Chat messages */}
               <div
-                ref={chatAreaRef}
                 className="flex-1 overflow-y-auto flex flex-col px-3 py-2 gap-1.5 relative"
                 style={{
                   scrollbarWidth: "thin",
@@ -658,11 +705,7 @@ export const CoffeeChatbot: React.FC = () => {
                           {msg.chips.map((chip) => (
                             <button
                               key={chip}
-                              onClick={() =>
-                                chip === "💳 Pay Now"
-                                  ? setShowPayment(true)
-                                  : sendMessage(chip)
-                              }
+                              onClick={() => handleChipClick(chip)}
                               disabled={isLoading}
                               className="px-2 py-0.5 text-[9.5px] text-zinc-600 bg-white border border-zinc-300 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors cursor-pointer"
                               style={{ borderRadius: 20 }}
@@ -741,7 +784,7 @@ export const CoffeeChatbot: React.FC = () => {
                             </div>
                           </div>
                           <span className="text-[10px] font-mono font-bold text-amber-700">
-                            from ${item.base.toFixed(2)}
+                            from ${(item.base + SIZE_MOD.Small).toFixed(2)}
                           </span>
                         </button>
                       ))}
@@ -807,6 +850,11 @@ export const CoffeeChatbot: React.FC = () => {
                               >
                                 <span>
                                   {item.size} {item.name}
+                                  {item.addOns.length > 0 && (
+                                    <span className="block text-[8px] text-zinc-400">
+                                      + {item.addOns.join(", ")}
+                                    </span>
+                                  )}
                                 </span>
                                 <span className="font-mono text-amber-700">
                                   ${item.price.toFixed(2)}
@@ -834,17 +882,23 @@ export const CoffeeChatbot: React.FC = () => {
                       <div className="px-3 pb-3 flex flex-col gap-2 shrink-0">
                         <button
                           onClick={() => setPaymentDone(true)}
+                          disabled={order.length === 0}
                           className="w-full py-2 rounded-xl text-[11px] font-bold text-white flex items-center justify-center gap-2"
-                          style={{ background: "#000" }}
+                          style={{
+                            background: order.length > 0 ? "#000" : "#a8a29e",
+                          }}
                         >
                           <span>🍎</span> Apple Pay
                         </button>
                         <button
                           onClick={() => setPaymentDone(true)}
+                          disabled={order.length === 0}
                           className="w-full py-2 rounded-xl text-[11px] font-bold text-white flex items-center justify-center gap-2"
                           style={{
                             background:
-                              "linear-gradient(135deg,#1a56db,#3b82f6)",
+                              order.length > 0
+                                ? "linear-gradient(135deg,#1a56db,#3b82f6)"
+                                : "#a8a29e",
                           }}
                         >
                           <span>💳</span> Credit Card
