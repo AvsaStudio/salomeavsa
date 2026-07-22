@@ -4,16 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import React, { useState, useRef, useEffect } from 'react';
-import { CommandLineIcon, BeakerIcon, CupSaucerIcon, CalculatorIcon } from '@heroicons/react/24/outline';
+import { CommandLineIcon } from '@heroicons/react/24/outline';
 
 // Types for our mini apps
 type TerminalApp = 'shipping' | 'magic8' | 'scrabble' | 'coffee' | 'physics';
-
-interface TerminalState {
-  output: string[];
-  isWaitingInput: boolean;
-  inputValue: string;
-}
 
 export const Terminal: React.FC = () => {
   const [activeApp, setActiveApp] = useState<TerminalApp>('shipping');

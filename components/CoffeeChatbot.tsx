@@ -2,8 +2,8 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { sendCoffeeChat, ChatMessage } from "../services/gemini";
+import React, { useState, useRef, useCallback } from "react";
+import { sendCoffeeChat, ChatMessage } from "../services/coffeeChat";
 
 type Message = { from: "bot" | "user"; text: string; chips?: string[] };
 
@@ -308,7 +308,6 @@ export const CoffeeChatbot: React.FC = () => {
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [emojiIdx, setEmojiIdx] = useState(0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [pendingSize, setPendingSize] = useState<string | null>(null);
   const [pendingItem, setPendingItem] = useState<(typeof MENU)[0] | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -368,8 +367,8 @@ export const CoffeeChatbot: React.FC = () => {
         setMessages((prev) => [...prev, botMsg]);
         setHistory((prev) => [
           ...prev,
-          { role: "user", parts: [{ text }] },
-          { role: "model", parts: [{ text: botText }] },
+          { role: "user", content: text },
+          { role: "assistant", content: botText },
         ]);
       } catch {
         setMessages((prev) => [
@@ -417,7 +416,6 @@ export const CoffeeChatbot: React.FC = () => {
   // ── Coffee menu select ──
   const selectCoffeeItem = (item: (typeof MENU)[0]) => {
     setPendingItem(item);
-    setPendingSize(null);
   };
 
   const confirmSize = (size: string) => {
@@ -484,7 +482,7 @@ export const CoffeeChatbot: React.FC = () => {
           Coffee Chatbot
         </h2>
         <span className="text-zinc-600 text-sm font-mono hidden sm:block">
-          — Python · NLP · Gemini AI
+          — Node.js · OpenAI API
         </span>
       </div>
 
@@ -1211,13 +1209,13 @@ export const CoffeeChatbot: React.FC = () => {
           </div>
 
           <p className="text-zinc-400 text-sm leading-relaxed">
-            A conversational AI barista powered by Gemini. Full menu ordering
+            A conversational AI barista powered by OpenAI. Full menu ordering
             with live price calculation, Apple Pay & Credit Card checkout, and a
             coffee machine interface built in React.
           </p>
 
           <div className="flex flex-wrap gap-2 justify-center">
-            {["Python", "NLP", "React", "Gemini AI", "TypeScript", "CSS"].map(
+            {["Node.js", "Express", "React", "OpenAI", "TypeScript", "CSS"].map(
               (tag) => (
                 <span
                   key={tag}
