@@ -4,6 +4,8 @@
  */
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { sendCoffeeChat, ChatMessage } from "../services/coffeeChat";
+import * as orderApi from "../services/orderApi";
+import { getMenu } from "../services/menuApi";
 
 type Message = { from: "bot" | "user"; text: string; chips?: string[] };
 
@@ -15,10 +17,12 @@ interface HeartParticle {
   dx: number;
 }
 interface OrderItem {
+  clientId: string;
   name: string;
   size: string;
   price: number;
   addOns: string[];
+  persistenceId?: number;
 }
 
 const MENU = [
@@ -316,15 +320,180 @@ export const CoffeeChatbot: React.FC = () => {
   const [emojiIdx, setEmojiIdx] = useState(0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [pendingItem, setPendingItem] = useState<(typeof MENU)[0] | null>(null);
+  const [menuItems, setMenuItems] = useState(MENU);
+  const [persistentOrderId, setPersistentOrderId] = useState<string | null>(
+    null
+  );
+  const [persistenceStatus, setPersistenceStatus] = useState<
+    "local" | "saving" | "saved"
+  >("local");
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const heartBtnRef = useRef<HTMLButtonElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const persistentOrderCredentialsRef = useRef<orderApi.OrderCredentials | null>(
+    null
+  );
+  const orderCreationPromiseRef = useRef<
+    Promise<orderApi.OrderCredentials> | undefined
+  >(undefined);
+  const pendingItemSavesRef = useRef(
+    new Map<string, Promise<number | undefined>>()
+  );
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    getMenu()
+      .then((menu) => {
+        setMenuItems(
+          menu.items.map((databaseItem) => {
+            const fallback = MENU.find(
+              (item) => item.name === databaseItem.name
+            );
+            return {
+              name: databaseItem.name,
+              base: databaseItem.basePrice,
+              emoji: fallback?.emoji ?? "☕",
+              desc: fallback?.desc ?? "Freshly prepared",
+            };
+          })
+        );
+      })
+      .catch(() => setMenuItems(MENU));
+  }, []);
+
+  useEffect(() => {
+    const storedCredentials = localStorage.getItem("brewedBeansOrder");
+    if (!storedCredentials) return;
+
+    let credentials: orderApi.OrderCredentials;
+    try {
+      credentials = JSON.parse(storedCredentials) as orderApi.OrderCredentials;
+      if (!credentials.id || !credentials.accessToken) throw new Error();
+    } catch {
+      localStorage.removeItem("brewedBeansOrder");
+      return;
+    }
+
+    setPersistenceStatus("saving");
+    orderApi
+      .getOrder(credentials)
+      .then((savedOrder) => {
+        if (savedOrder.status !== "pending") {
+          localStorage.removeItem("brewedBeansOrder");
+          return;
+        }
+
+        persistentOrderCredentialsRef.current = credentials;
+        setPersistentOrderId(savedOrder.id);
+        setOrder(
+          savedOrder.items.map((item) => ({
+            clientId: crypto.randomUUID(),
+            name: item.productName,
+            size: item.size,
+            price:
+              (item.unitPrice +
+                item.addOns.reduce((sum, addOn) => sum + addOn.price, 0)) *
+              item.quantity,
+            addOns: item.addOns.map((addOn) => addOn.name),
+            persistenceId: item.id,
+          }))
+        );
+        setPersistenceStatus("saved");
+      })
+      .catch((error: unknown) => {
+        if (
+          error instanceof orderApi.OrderApiError &&
+          [401, 404].includes(error.status)
+        ) {
+          localStorage.removeItem("brewedBeansOrder");
+        }
+        setPersistenceStatus("local");
+      });
+  }, []);
+
+  const ensurePersistentOrder = async () => {
+    if (persistentOrderCredentialsRef.current) {
+      return persistentOrderCredentialsRef.current;
+    }
+    if (orderCreationPromiseRef.current) return orderCreationPromiseRef.current;
+
+    setPersistenceStatus("saving");
+    const creation = orderApi.createOrder().then((savedOrder) => {
+      if (!savedOrder.accessToken) throw new Error("Order token was not returned");
+      const credentials = {
+        id: savedOrder.id,
+        accessToken: savedOrder.accessToken,
+      };
+      persistentOrderCredentialsRef.current = credentials;
+      setPersistentOrderId(savedOrder.id);
+      localStorage.setItem("brewedBeansOrder", JSON.stringify(credentials));
+      return credentials;
+    });
+    orderCreationPromiseRef.current = creation;
+
+    try {
+      return await creation;
+    } finally {
+      orderCreationPromiseRef.current = undefined;
+    }
+  };
+
+  const persistNewItem = (item: OrderItem) => {
+    const task = (async () => {
+      try {
+        const credentials = await ensurePersistentOrder();
+        const savedOrder = await orderApi.addOrderItem(credentials, {
+          productName: item.name,
+          size: item.size as "Small" | "Medium" | "Large",
+        });
+        const savedItem = savedOrder.items.at(-1);
+        if (savedItem) {
+          setOrder((currentOrder) =>
+            currentOrder.map((currentItem) =>
+              currentItem.clientId === item.clientId
+                ? { ...currentItem, persistenceId: savedItem.id }
+                : currentItem
+            )
+          );
+        }
+        setPersistenceStatus("saved");
+        return savedItem?.id;
+      } catch {
+        setPersistenceStatus("local");
+        return undefined;
+      }
+    })();
+
+    pendingItemSavesRef.current.set(item.clientId, task);
+    void task.finally(() => pendingItemSavesRef.current.delete(item.clientId));
+    return task;
+  };
+
+  const persistUpdatedItem = async (item: OrderItem) => {
+    const persistenceId =
+      item.persistenceId ??
+      (await pendingItemSavesRef.current.get(item.clientId));
+    const credentials = persistentOrderCredentialsRef.current;
+    if (!credentials || !persistenceId) return;
+
+    setPersistenceStatus("saving");
+    try {
+      await orderApi.updateOrderItem(credentials, persistenceId, {
+        productName: item.name,
+        size: item.size as "Small" | "Medium" | "Large",
+        addOns: item.addOns,
+      });
+      setPersistenceStatus("saved");
+    } catch {
+      setPersistenceStatus("local");
+    }
+  };
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -433,12 +602,14 @@ export const CoffeeChatbot: React.FC = () => {
     if (!pendingItem) return;
     const price = pendingItem.base + SIZE_MOD[size];
     const newItem: OrderItem = {
+      clientId: crypto.randomUUID(),
       name: pendingItem.name,
       size,
       price,
       addOns: [],
     };
     setOrder((prev) => [...prev, newItem]);
+    void persistNewItem(newItem);
     const msg = `I'd like a ${size} ${pendingItem.name} please`;
     setPendingItem(null);
     setShowCoffeeMenu(false);
@@ -460,18 +631,21 @@ export const CoffeeChatbot: React.FC = () => {
 
     const addOn = ADD_ONS[chip];
     if (addOn && order.length > 0) {
-      setOrder((currentOrder) =>
-        currentOrder.map((item, index) =>
-          index === currentOrder.length - 1 &&
-          !item.addOns.includes(addOn.label)
-            ? {
-                ...item,
-                price: item.price + addOn.price,
-                addOns: [...item.addOns, addOn.label],
-              }
-            : item
-        )
-      );
+      const latestItem = order[order.length - 1];
+      if (!latestItem.addOns.includes(addOn.label)) {
+        const updatedItem = {
+          ...latestItem,
+          price: latestItem.price + addOn.price,
+          addOns: [...latestItem.addOns, addOn.label],
+        };
+        setOrder((currentOrder) =>
+          currentOrder.map((item, index) =>
+            index === currentOrder.length - 1 ? updatedItem : item
+          )
+        );
+
+        void persistUpdatedItem(updatedItem);
+      }
     }
 
     sendMessage(chip);
@@ -486,6 +660,17 @@ export const CoffeeChatbot: React.FC = () => {
 
   // ── Power / Restart ──
   const restart = () => {
+    const credentials = persistentOrderCredentialsRef.current;
+    if (credentials && !paymentDone) {
+      void orderApi
+        .updateOrderStatus(credentials, "cancelled")
+        .catch(() => undefined);
+    }
+    persistentOrderCredentialsRef.current = null;
+    setPersistentOrderId(null);
+    localStorage.removeItem("brewedBeansOrder");
+    setPersistenceStatus("local");
+    setPaymentError(null);
     const greeting =
       RESTART_GREETINGS[Math.floor(Math.random() * RESTART_GREETINGS.length)];
     setMessages([
@@ -502,6 +687,75 @@ export const CoffeeChatbot: React.FC = () => {
     setPaymentDone(false);
     setShowEmojiPicker(false);
     setPendingItem(null);
+  };
+
+  const completePayment = async () => {
+    setPaymentError(null);
+    const credentials = persistentOrderCredentialsRef.current;
+    if (!credentials) {
+      setPaymentError("Save the order to PostgreSQL before completing payment.");
+      return;
+    }
+
+    setPersistenceStatus("saving");
+    try {
+      await Promise.all(pendingItemSavesRef.current.values());
+      await orderApi.updateOrderStatus(credentials, "paid");
+      localStorage.removeItem("brewedBeansOrder");
+      setPersistenceStatus("saved");
+      setPaymentDone(true);
+    } catch (error) {
+      setPersistenceStatus("local");
+      setPaymentError(
+        error instanceof Error ? error.message : "Payment could not be saved."
+      );
+    }
+  };
+
+  const removeItem = async (item: OrderItem) => {
+    setPaymentError(null);
+    const persistenceId =
+      item.persistenceId ??
+      (await pendingItemSavesRef.current.get(item.clientId));
+    const credentials = persistentOrderCredentialsRef.current;
+
+    if (credentials && persistenceId) {
+      setPersistenceStatus("saving");
+      try {
+        await orderApi.removeOrderItem(credentials, persistenceId);
+        setPersistenceStatus("saved");
+      } catch (error) {
+        setPersistenceStatus("local");
+        setPaymentError(
+          error instanceof Error ? error.message : "Item could not be removed."
+        );
+        return;
+      }
+    }
+
+    setOrder((currentOrder) =>
+      currentOrder.filter((currentItem) => currentItem.clientId !== item.clientId)
+    );
+  };
+
+  const deleteCurrentOrder = async () => {
+    const credentials = persistentOrderCredentialsRef.current;
+    if (credentials) {
+      setPersistenceStatus("saving");
+      try {
+        await orderApi.deleteOrder(credentials);
+      } catch (error) {
+        setPersistenceStatus("local");
+        setPaymentError(
+          error instanceof Error ? error.message : "Order could not be cancelled."
+        );
+        return;
+      }
+    }
+
+    persistentOrderCredentialsRef.current = null;
+    localStorage.removeItem("brewedBeansOrder");
+    restart();
   };
 
   const orderTotal = order.reduce((s, i) => s + i.price, 0);
@@ -766,7 +1020,7 @@ export const CoffeeChatbot: React.FC = () => {
                       className="flex-1 overflow-y-auto py-1"
                       style={{ scrollbarWidth: "thin" }}
                     >
-                      {MENU.map((item) => (
+                      {menuItems.map((item) => (
                         <button
                           key={item.name}
                           onClick={() => selectCoffeeItem(item)}
@@ -843,9 +1097,9 @@ export const CoffeeChatbot: React.FC = () => {
                             <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-2">
                               Your Order
                             </div>
-                            {order.map((item, i) => (
+                            {order.map((item) => (
                               <div
-                                key={i}
+                                key={item.clientId}
                                 className="flex justify-between text-[10.5px] text-zinc-700 py-1 border-b border-zinc-100"
                               >
                                 <span>
@@ -856,8 +1110,19 @@ export const CoffeeChatbot: React.FC = () => {
                                     </span>
                                   )}
                                 </span>
-                                <span className="font-mono text-amber-700">
-                                  ${item.price.toFixed(2)}
+                                <span className="flex items-center gap-1.5">
+                                  <span className="font-mono text-amber-700">
+                                    ${item.price.toFixed(2)}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => void removeItem(item)}
+                                    aria-label={`Remove ${item.size} ${item.name}`}
+                                    title="Remove item"
+                                    className="text-zinc-400 hover:text-red-600"
+                                  >
+                                    ×
+                                  </button>
                                 </span>
                               </div>
                             ))}
@@ -878,11 +1143,18 @@ export const CoffeeChatbot: React.FC = () => {
                         <div className="text-[8px] text-zinc-400 text-center mt-2 font-mono">
                           Tax included · Pickup in 3–5 min
                         </div>
+                        {paymentError && (
+                          <div className="mt-2 text-center text-[9px] text-red-600">
+                            {paymentError}
+                          </div>
+                        )}
                       </div>
                       <div className="px-3 pb-3 flex flex-col gap-2 shrink-0">
                         <button
-                          onClick={() => setPaymentDone(true)}
-                          disabled={order.length === 0}
+                          onClick={completePayment}
+                          disabled={
+                            order.length === 0 || persistenceStatus === "saving"
+                          }
                           className="w-full py-2 rounded-xl text-[11px] font-bold text-white flex items-center justify-center gap-2"
                           style={{
                             background: order.length > 0 ? "#000" : "#a8a29e",
@@ -891,8 +1163,10 @@ export const CoffeeChatbot: React.FC = () => {
                           <span>🍎</span> Apple Pay
                         </button>
                         <button
-                          onClick={() => setPaymentDone(true)}
-                          disabled={order.length === 0}
+                          onClick={completePayment}
+                          disabled={
+                            order.length === 0 || persistenceStatus === "saving"
+                          }
                           className="w-full py-2 rounded-xl text-[11px] font-bold text-white flex items-center justify-center gap-2"
                           style={{
                             background:
@@ -908,6 +1182,14 @@ export const CoffeeChatbot: React.FC = () => {
                           className="text-[9px] text-zinc-400 hover:text-zinc-600 text-center mt-1"
                         >
                           Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void deleteCurrentOrder()}
+                          disabled={persistenceStatus === "saving"}
+                          className="text-[9px] text-red-500 hover:text-red-700 text-center"
+                        >
+                          Cancel and delete order
                         </button>
                       </div>
                     </>
@@ -1064,8 +1346,9 @@ export const CoffeeChatbot: React.FC = () => {
               {/* ⏻ Restart */}
               <button
                 onClick={restart}
+                disabled={persistenceStatus === "saving"}
                 title="Restart conversation"
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm cursor-pointer active:scale-95 transition-transform hover:brightness-110"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm cursor-pointer active:scale-95 transition-transform hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   background: "linear-gradient(145deg,#c8c8c8,#aaa)",
                   border: "1.5px solid #777",
@@ -1234,6 +1517,15 @@ export const CoffeeChatbot: React.FC = () => {
               </div>
               <div className="text-zinc-600 text-xs font-mono">
                 python coffeebot.py --mood tired
+              </div>
+              <div className="text-zinc-600 text-[10px] font-mono">
+                {persistenceStatus === "saved"
+                  ? `PostgreSQL order #${
+                      persistentOrderId?.slice(0, 8) ?? "complete"
+                    } saved`
+                  : persistenceStatus === "saving"
+                  ? "Saving order to PostgreSQL..."
+                  : "Local order mode · configure DATABASE_URL for persistence"}
               </div>
             </div>
           </div>
