@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { employmentHistory } from "../data/employment";
 
 const categoryStyles = {
@@ -12,18 +12,16 @@ const categoryStyles = {
 } as const;
 
 export const Experience: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
     <section id="experience" className="py-20 px-4 max-w-5xl mx-auto">
       <div className="flex items-baseline justify-between mb-12 border-b border-zinc-800 pb-4">
         <h2 className="text-4xl font-bold text-white font-gemola tracking-wide">Experience</h2>
-        <button
-          onClick={() => navigate('/experience')}
+        <Link
+          to="/experience"
           className="text-xs font-mono text-zinc-400 hover:text-blue-400 transition-colors uppercase tracking-widest"
         >
           Full History →
-        </button>
+        </Link>
       </div>
 
       <div className="space-y-0 divide-y divide-zinc-800/60">
@@ -49,12 +47,12 @@ export const Experience: React.FC = () => {
       </div>
 
       <div className="mt-10 pt-8 border-t border-zinc-800">
-        <button
-          onClick={() => navigate('/experience')}
+        <Link
+          to="/experience"
           className="w-full sm:w-auto px-6 py-3 border border-zinc-700 text-zinc-300 rounded-full text-sm font-medium hover:border-zinc-500 hover:text-white transition-colors"
         >
           View Full Employment History →
-        </button>
+        </Link>
       </div>
     </section>
   );

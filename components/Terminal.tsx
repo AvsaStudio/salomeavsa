@@ -3,7 +3,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CommandLineIcon } from '@heroicons/react/24/outline';
 
 // Types for our mini apps
@@ -13,7 +13,6 @@ export const Terminal: React.FC = () => {
   const [activeApp, setActiveApp] = useState<TerminalApp>('shipping');
   const [logs, setLogs] = useState<string[]>([]);
   const [input, setInput] = useState('');
-  const scrollRef = useRef<HTMLDivElement>(null);
   
   // State for multi-step interactions (like the coffee bot)
   const [interactionStep, setInteractionStep] = useState<number>(0);
@@ -21,17 +20,10 @@ export const Terminal: React.FC = () => {
 
   // Helper to add logs
   const log = (text: string) => setLogs(prev => [...prev, text]);
-  const clearLogs = () => setLogs([]);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [logs]);
 
   // Initialize app on switch
   useEffect(() => {
-    clearLogs();
+    setLogs([]);
     setInteractionStep(0);
     setTempData({});
     
@@ -311,7 +303,7 @@ export const Terminal: React.FC = () => {
                     </div>
 
                     {/* Terminal Output */}
-                    <div className="space-y-1 pb-4" ref={scrollRef}>
+                    <div className="space-y-1 pb-4">
                         {logs.map((line, i) => (
                             <div key={i} className={`${line.startsWith('Error') ? 'text-red-400' : line.startsWith('$') ? 'text-zinc-400 mt-4' : line.startsWith('>>>') ? 'text-blue-400 font-bold mt-4' : 'text-zinc-300'}`}>
                                 {line}

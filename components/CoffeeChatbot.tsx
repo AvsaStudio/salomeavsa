@@ -329,7 +329,7 @@ export const CoffeeChatbot: React.FC = () => {
   >("local");
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const heartBtnRef = useRef<HTMLButtonElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
@@ -344,7 +344,10 @@ export const CoffeeChatbot: React.FC = () => {
   );
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const messagePanel = messagesRef.current;
+    if (messagePanel) {
+      messagePanel.scrollTop = messagePanel.scrollHeight;
+    }
   }, [messages, isLoading]);
 
   useEffect(() => {
@@ -923,6 +926,7 @@ export const CoffeeChatbot: React.FC = () => {
 
               {/* Chat messages */}
               <div
+                ref={messagesRef}
                 className="flex-1 overflow-y-auto flex flex-col px-3 py-2 gap-1.5 relative"
                 style={{
                   scrollbarWidth: "thin",
@@ -988,7 +992,6 @@ export const CoffeeChatbot: React.FC = () => {
                     </div>
                   </div>
                 )}
-                <div ref={messagesEndRef} />
               </div>
 
               {/* ── Coffee Menu Overlay ── */}

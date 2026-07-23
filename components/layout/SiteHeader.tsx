@@ -5,23 +5,12 @@ import {
   navigationItems,
   type SitePage,
 } from "../../data/site";
-import { scrollToSection } from "../../utils/scroll";
 
 interface SiteHeaderProps {
   activePage: SitePage;
 }
 
 export const SiteHeader: React.FC<SiteHeaderProps> = ({ activePage }) => {
-  const handleSectionClick =
-    (sectionId: string) => (event: React.MouseEvent<HTMLAnchorElement>) => {
-      if (activePage !== "home") {
-        return;
-      }
-
-      event.preventDefault();
-      scrollToSection(sectionId);
-    };
-
   return (
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
@@ -57,7 +46,6 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({ activePage }) => {
                 <a
                   key={item.label}
                   href={`#${item.sectionId}`}
-                  onClick={handleSectionClick(item.sectionId)}
                   className="transition-colors hover:text-white"
                 >
                   {item.label}

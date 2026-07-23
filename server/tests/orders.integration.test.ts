@@ -25,7 +25,7 @@ before(async () => {
   const migration = await readFile(
     path.resolve(
       currentDirectory,
-      "../db/migrations/001_create_order_tables.sql"
+      "../db/migrations/schema.sql"
     ),
     "utf8"
   );

@@ -5,7 +5,7 @@ export const ContactSection: React.FC = () => {
   return (
     <section
       id="contact"
-      className="border-t border-zinc-900 bg-zinc-900/20 px-4 py-24"
+      className="scroll-mt-28 border-t border-zinc-900 bg-zinc-900/20 px-4 py-24"
     >
       <div className="mx-auto max-w-4xl text-center">
         <h2 className="mb-6 font-gemola text-5xl font-bold text-white">

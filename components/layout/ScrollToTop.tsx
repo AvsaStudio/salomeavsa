@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { resetWindowScroll, scrollToSection } from "../../utils/scroll";
 
 export const ScrollToTop = () => {
   const { pathname, hash } = useLocation();
@@ -8,12 +7,14 @@ export const ScrollToTop = () => {
   useEffect(() => {
     if (hash) {
       requestAnimationFrame(() => {
-        scrollToSection(hash.replace("#", ""), "auto");
+        document
+          .getElementById(hash.slice(1))
+          ?.scrollIntoView({ behavior: "auto" });
       });
       return;
     }
 
-    resetWindowScroll();
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [hash, pathname]);
 
   return null;

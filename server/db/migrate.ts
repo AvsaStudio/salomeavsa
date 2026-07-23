@@ -7,7 +7,7 @@ import { closeDatabase, requireDatabase } from "./pool.js";
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const migrationPath = path.join(
   currentDirectory,
-  "migrations/001_create_order_tables.sql"
+  "migrations/schema.sql"
 );
 
 try {

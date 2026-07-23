@@ -5,7 +5,6 @@
 import React, { useEffect, useRef } from "react";
 import { ArrowDownIcon } from "@heroicons/react/24/outline";
 import { Link } from "react-router-dom";
-import { scrollToSection } from "../utils/scroll";
 
 // ── 3D type helpers ─────────────────────────────────────────────────────────
 type Vec3 = [number, number, number];
@@ -399,11 +398,6 @@ const WireframeGlobe: React.FC = () => {
 // ── Main Hero ────────────────────────────────────────────────────────────────
 export const Hero: React.FC = () => {
   const fontStack = '"the-seasons", "The Seasons", "Bodoni Moda", serif';
-  const handleSectionClick =
-    (sectionId: string) => (event: React.MouseEvent<HTMLAnchorElement>) => {
-      event.preventDefault();
-      scrollToSection(sectionId);
-    };
 
   return (
     <section className="relative min-h-screen w-full flex flex-col justify-center items-center px-4 overflow-hidden bg-[#050505]">
@@ -572,7 +566,6 @@ export const Hero: React.FC = () => {
           </Link>
           <a
             href="#contact"
-            onClick={handleSectionClick("contact")}
             className="px-8 py-3.5 bg-transparent border border-zinc-800 text-zinc-300 text-sm font-light rounded-full hover:bg-zinc-900/60 hover:border-zinc-600 hover:text-white backdrop-blur-md transition-all duration-300 tracking-wide"
             style={{ fontFamily: fontStack }}
           >
