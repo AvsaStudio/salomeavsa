@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import test, { after, before } from "node:test";
 import { app } from "../app.js";
@@ -8,8 +9,10 @@ let server: ReturnType<typeof app.listen>;
 let baseUrl: string;
 
 before(async () => {
+  server = createServer(app);
+
   await new Promise<void>((resolve) => {
-    server = app.listen(0, "127.0.0.1", () => {
+    server.listen(0, "127.0.0.1", () => {
       const address = server.address() as AddressInfo;
       baseUrl = `http://127.0.0.1:${address.port}`;
       resolve();
