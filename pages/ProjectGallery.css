@@ -1,0 +1,113 @@
+.project-gallery-page {
+  @apply flex min-h-screen flex-col bg-zinc-950 text-zinc-50;
+}
+
+.project-gallery-page__main {
+  @apply mx-auto w-full max-w-7xl flex-1 px-6 pb-32 pt-36 sm:px-10 sm:pt-44;
+}
+
+.project-gallery-page__header {
+  @apply mb-16 max-w-3xl;
+}
+
+.project-gallery-page__eyebrow {
+  @apply mb-4 font-mono text-xs uppercase tracking-[0.24em] text-blue-400;
+}
+
+.project-gallery-page__title {
+  @apply text-5xl leading-[1.05] tracking-tight text-white sm:text-7xl;
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+.project-gallery-page__intro {
+  @apply mt-7 max-w-2xl text-lg leading-relaxed text-zinc-400;
+}
+
+.project-gallery-page__grid {
+  @apply space-y-8;
+}
+
+.project-card {
+  @apply grid overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/40 transition-colors hover:border-zinc-700 lg:grid-cols-[0.8fr_1.2fr];
+}
+
+.project-card__visual {
+  @apply relative flex min-h-64 items-center justify-center overflow-hidden border-b border-zinc-800 bg-gradient-to-br from-blue-950/70 via-zinc-950 to-violet-950/50 lg:min-h-full lg:border-b-0 lg:border-r;
+}
+
+.project-card:nth-child(2) .project-card__visual {
+  @apply from-amber-950/60 via-zinc-950 to-rose-950/40;
+}
+
+.project-card:nth-child(3) .project-card__visual {
+  @apply from-emerald-950/50 via-zinc-950 to-blue-950/60;
+}
+
+.project-card__number {
+  @apply absolute left-6 top-5 font-mono text-xs tracking-widest text-zinc-600;
+}
+
+.project-card__monogram {
+  @apply text-8xl text-white/10 sm:text-9xl;
+  font-family: var(--font-display);
+}
+
+.project-card__content {
+  @apply p-7 sm:p-10 lg:p-12;
+}
+
+.project-card__label {
+  @apply mb-3 font-mono text-xs uppercase tracking-widest text-blue-400;
+}
+
+.project-card__title {
+  @apply text-4xl text-white sm:text-5xl;
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+.project-card__summary {
+  @apply mt-5 text-base leading-relaxed text-zinc-400;
+}
+
+.project-card__outcomes {
+  @apply mt-8 space-y-3 border-l border-zinc-700 pl-5 text-sm leading-relaxed text-zinc-300;
+}
+
+.project-card__footer {
+  @apply mt-9 flex items-end justify-between gap-6 border-t border-zinc-800 pt-6;
+}
+
+.project-card__tech {
+  @apply flex flex-wrap gap-2;
+}
+
+.project-card__tech span {
+  @apply rounded-md bg-zinc-800 px-2.5 py-1 font-mono text-xs text-zinc-400;
+}
+
+.project-card__link {
+  @apply flex shrink-0 items-center gap-2 text-sm font-medium text-zinc-300 transition-colors hover:text-white;
+}
+
+.project-card__link svg {
+  @apply h-4 w-4;
+}
+
+.project-gallery-page__cta {
+  @apply mt-24 flex flex-col items-start justify-between gap-8 border-t border-zinc-800 pt-12 sm:flex-row sm:items-center;
+}
+
+.project-gallery-page__cta p {
+  @apply mb-2 font-mono text-xs uppercase tracking-widest text-zinc-500;
+}
+
+.project-gallery-page__cta h2 {
+  @apply text-2xl text-white sm:text-3xl;
+  font-family: var(--font-display);
+}
+
+.project-gallery-page__cta a {
+  @apply shrink-0 rounded-full bg-zinc-100 px-6 py-3 text-sm font-bold text-zinc-900 transition-colors hover:bg-white;
+}

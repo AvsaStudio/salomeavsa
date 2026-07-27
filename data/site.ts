@@ -1,4 +1,4 @@
-export type SitePage = "home" | "experience";
+export type SitePage = "home" | "experience" | "projects";
 
 type RouteNavigationItem = {
   type: "route";
@@ -18,24 +18,24 @@ export type NavigationItem = RouteNavigationItem | SectionNavigationItem;
 export const EMAIL_ADDRESS = "salome.a.miller@gmail.com";
 
 export const navigationItems: NavigationItem[] = [
+  { type: "route", label: "Home", href: "/", page: "home" },
   { type: "route", label: "Experience", href: "/experience", page: "experience" },
-  { type: "section", label: "Python Lab", sectionId: "python-interactive" },
-  { type: "section", label: "Darkroom", sectionId: "photography" },
-  { type: "section", label: "JS Lab", sectionId: "js-challenges" },
-  { type: "section", label: "UX / UI", sectionId: "ux-design" },
-  { type: "section", label: "Projects", sectionId: "projects" },
+  { type: "route", label: "Projects", href: "/projects", page: "projects" },
   { type: "section", label: "Contact", sectionId: "contact" },
 ];
 
 export const technicalArsenal = [
   "Python",
   "React",
-  "Node.js",
   "TypeScript",
-  "Brand Strategy",
-  "Adobe Suite",
-  "Figma",
-  "Photography",
+  "JavaScript",
+  "Node.js",
+  "PostgreSQL",
+  "REST APIs",
+  "Stripe",
+  "HTML & CSS",
+  "Git & GitHub",
+  "Figma & Design Systems",
 ];
 
 export const contactCards = [

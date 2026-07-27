@@ -14,6 +14,12 @@ const EmploymentHistory = lazy(() =>
   }))
 );
 
+const ProjectGallery = lazy(() =>
+  import("./pages/ProjectGallery").then((module) => ({
+    default: module.ProjectGallery,
+  }))
+);
+
 const routeFallback = (
   <div className="flex min-h-screen items-center justify-center bg-zinc-950 font-mono text-sm text-zinc-500">
     Loading page...
@@ -31,6 +37,14 @@ const App: React.FC = () => {
           element={
             <Suspense fallback={routeFallback}>
               <EmploymentHistory />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/projects"
+          element={
+            <Suspense fallback={routeFallback}>
+              <ProjectGallery />
             </Suspense>
           }
         />
