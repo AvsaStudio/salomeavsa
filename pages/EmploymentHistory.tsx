@@ -61,15 +61,15 @@ export const EmploymentHistory: React.FC = () => {
           <h1 className="employment-history-page__title">Employment History</h1>
 
           <p className="employment-history-page__intro">
-            Six years across software engineering, front-end development, and
+            three years across software engineering, front-end development, and
             UX/UI design — building products from concept to production for
             clients across fashion, security, transit, and creative industries.
           </p>
 
           <div className="employment-history-page__stats">
             {[
-              { value: "6+", label: "Years Experience" },
-              { value: "6", label: "Roles Held" },
+              { value: "3+", label: "Years Experience" },
+              { value: "3", label: "Roles Held" },
               { value: "4", label: "Industries" },
               { value: "2", label: "Disciplines" },
             ].map((stat) => (
