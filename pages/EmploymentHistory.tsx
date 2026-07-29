@@ -69,7 +69,7 @@ export const EmploymentHistory: React.FC = () => {
           <div className="employment-history-page__stats">
             {[
               { value: "3+", label: "Years Experience" },
-              { value: "3", label: "Roles Held" },
+              { value: "2", label: "Roles Held" },
               { value: "4", label: "Industries" },
               { value: "2", label: "Disciplines" },
             ].map((stat) => (
